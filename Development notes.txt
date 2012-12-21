@@ -1,0 +1,20 @@
+Portux
+
+root: pw taskit
+MySQL root user, g1eschikt
+MySQL user on Portux: pruser, Wel12Lekker?
+Database: portuxdb
+
+
+MySQL user on Escurio: esuser, Vecht18Watch!
+Database: mydb
+
+Cosm:
+
+vanesp
+Wacht48Nacht
+master key: U98DuR5xdbHiH4_30wfQSx37aT2SAKxQdTZNcWt4UytXUT0g
+
+Feed:
+House: 87645
+
