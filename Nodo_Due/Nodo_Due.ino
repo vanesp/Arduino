@@ -25,9 +25,11 @@
  * Compiler                                          : - Arduino Compiler 0022
  * Hardware                                          : - Arduino UNO, Duemilanove of Nano met een ATMeg328 processor @16Mhz.
  *                                                     - Hardware en Arduino penbezetting volgens schema Nodo Due Rev.003
+ *
+ * This version modified by Peter van Es to remove superfluous functionality and reduce the chatter across the serial line
  \****************************************************************************************************************************/
 
-#define VERSION        121        // Nodo Version nummer:
+#define VERSION        122        // Nodo Version nummer:
                                   // Major.Minor.Patch
                                   // Major: Grote veranderingen aan concept, besturing, werking.
                                   // Minor: Uitbreiding/aanpassing van commando's, functionaliteit en MMI aanpassingen
@@ -53,10 +55,10 @@ prog_char PROGMEM Text_07[] = "RawSignal=";
 prog_char PROGMEM Text_08[] = "Queue=Out, ";
 prog_char PROGMEM Text_09[] = "Queue=In, ";
 prog_char PROGMEM Text_10[] = "TimeStamp=";
-prog_char PROGMEM Text_11[] = "Direction=";
-prog_char PROGMEM Text_12[] = "Source=";
+prog_char PROGMEM Text_11[] = "";  // PvE: was: "Direction="
+prog_char PROGMEM Text_12[] = "";  // PvE: was: "Source="
 prog_char PROGMEM Text_13[] = "ThisUnit=";
-prog_char PROGMEM Text_14[] = "Event=";
+prog_char PROGMEM Text_14[] = "";  // PvE: was "Event="
 prog_char PROGMEM Text_15[] = "Version=";
 prog_char PROGMEM Text_16[] = "Action=";
 
@@ -170,9 +172,9 @@ prog_char PROGMEM Text_16[] = "Action=";
 prog_char PROGMEM Cmd_0[]="Off";
 prog_char PROGMEM Cmd_1[]="Command";
 prog_char PROGMEM Cmd_2[]="Parameter";
-prog_char PROGMEM Cmd_3[]="IR";
+prog_char PROGMEM Cmd_3[]="I";   // PvE was: "IR";
 prog_char PROGMEM Cmd_4[]="IR&RF";
-prog_char PROGMEM Cmd_5[]="RF";
+prog_char PROGMEM Cmd_5[]="R";  // PvE was: "RF";
 prog_char PROGMEM Cmd_6[]="Serial";
 prog_char PROGMEM Cmd_7[]="Wired";
 prog_char PROGMEM Cmd_8[]="EventList";
@@ -184,8 +186,8 @@ prog_char PROGMEM Cmd_13[]="Trace";
 prog_char PROGMEM Cmd_14[]="Tag";
 prog_char PROGMEM Cmd_15[]="Timestamp";
 prog_char PROGMEM Cmd_16[]="Direction";
-prog_char PROGMEM Cmd_17[]="Input";
-prog_char PROGMEM Cmd_18[]="Output";
+prog_char PROGMEM Cmd_17[]="I";  // PvE was: "Input";
+prog_char PROGMEM Cmd_18[]="O";  // PvE was: "Output";
 prog_char PROGMEM Cmd_19[]="Internal";
 prog_char PROGMEM Cmd_20[]="Busy";
 prog_char PROGMEM Cmd_21[]="Source";
