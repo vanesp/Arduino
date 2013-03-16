@@ -33,8 +33,10 @@ void runAs_intervalometer() {
      camera_shutterBegin(system_cameraShutterLag); 
   
      if (system_useFlash1) flash_shoot(intervalometerMode_preFlash1Time, PINS_FLASH1);
+#ifndef PVE
      if (system_useFlash2) flash_shoot(intervalometerMode_preFlash2Time, PINS_FLASH2); 
-     
+#endif
+
      camera_shutterEnd(intervalometerMode_preCloseTime); 
      camera_autofocusEnd(); 
      

@@ -29,6 +29,11 @@
  * along with Photoduino.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Note: modifications made by Peter van Es (vanes.peter@gmail.com) to work with a homebuilt
+// Photoduino clone based upon a Sparkfun Serial Enabled LCD kit
+// with less bells and whistles than the PhotoDuino
+#define PVE
+
 /* ------------------------------------------------------------------------------------------------ *
  *                                         CONFIGURATION VALUES:                                    *
  *                                You can set the next configuration values                         *
@@ -56,12 +61,12 @@
 // - Number between 0 and 59999 in miliseconds
 // - Check your camera model at: http://www.photoduino.com/documentation/reference/cameras-shutterlag/
 //
-#define DEFAULT_SHUTTERLAG               100 // ms
+#define DEFAULT_SHUTTERLAG               63 // ms
 
 // 
-// Default intercicle time:
+// Default intercycle time:
 // - The default value in miliseconds camera needs to process photo and be ready for the next. 
-// - Also configurable throught menus.
+// - Also configurable through menus.
 // 
 // Valid values:
 // - Number between 0 and 59999 in miliseconds
@@ -70,7 +75,7 @@
 
 // 
 // Default camera mirror lock-up time limit:
-// - When use the mirror lock-up shooting mode, all cameras has a limit time (about 30 seconds) to 
+// - When use the mirror lock-up shooting mode, all cameras have a limit time (about 30 seconds) to 
 //   make the photo while the mirror is locked up. After that time, the mirror is automaticaly unlocked
 //   by the camera without taking photo. The next value is this time in miliseconds to say to photoduino 
 //   when to re-lock-up the mirror if no photo has taken.  Also configurable throught menus.
@@ -187,31 +192,56 @@
 #define LCD_ROWS             2  // rows
 
 // Pinout settings
-#define PINS_LCD_LED         13 //(digital pin)
-#define PINS_LCD_RS          12 //(digital pin)
-#define PINS_LCD_ENABLE      11 //(digital pin)
-#define PINS_LCD_DB4         10 //(digital pin)
-#define PINS_LCD_DB5         9  //(digital pin)
-#define PINS_LCD_DB6         8  //(digital pin)
-#define PINS_LCD_DB7         7  //(digital pin)
-#define PINS_BUZZER          6  //(digital pin with pwm)
-#define PINS_SHUTTER         5  //(digital pin)
-#define PINS_AUTOFOCUS       4  //(digital pin)
-#define PINS_BTN_A           3  //(digital pin)
-#define PINS_BTN_B           2  //(digital pin)
+#ifdef PVE // it's my special board
+   #define PINS_LCD_LED         3  //(digital pin) R/W pin...
+   #define PINS_LCD_RS          2  //(digital pin)
+   #define PINS_LCD_ENABLE      4  //(digital pin)
+   #define PINS_LCD_DB4         5  //(digital pin)
+   #define PINS_LCD_DB5         6  //(digital pin)
+   #define PINS_LCD_DB6         7  //(digital pin)
+   #define PINS_LCD_DB7         8  //(digital pin)
+   #define PINS_BUZZER          11  //(digital pin with pwm)
+   #define PINS_AUTOFOCUS       13  //(digital pin)
+   #define PINS_BTN_A           12  //(digital pin)
+   #define PINS_BTN_B           10  //(digital pin)
 
-#define PINS_SENSOR_SHOCK    5  //(analog pin)
-#define PINS_SENSOR_BARRIER  4  //(analog pin)
-#define PINS_SENSOR_MIC      3  //(analog pin)
+   #define PINS_SHUTTER         2   //(analog pin)
+   #define PINS_SENSOR_SHOCK    5  //(analog pin)
+//   #define PINS_SENSOR_BARRIER  4  //(analog pin) // not present
+   #define PINS_SENSOR_MIC      3  //(analog pin)
+#else
+   #define PINS_LCD_LED         13 //(digital pin)
+   #define PINS_LCD_RS          12 //(digital pin)
+   #define PINS_LCD_ENABLE      11 //(digital pin)
+   #define PINS_LCD_DB4         10 //(digital pin)
+   #define PINS_LCD_DB5         9  //(digital pin)
+   #define PINS_LCD_DB6         8  //(digital pin)
+   #define PINS_LCD_DB7         7  //(digital pin)
+   #define PINS_BUZZER          6  //(digital pin with pwm)
+   #define PINS_SHUTTER         5  //(digital pin)
+   #define PINS_AUTOFOCUS       4  //(digital pin)
+   #define PINS_BTN_A           3  //(digital pin)
+   #define PINS_BTN_B           2  //(digital pin)
+
+   #define PINS_SENSOR_SHOCK    5  //(analog pin)
+   #define PINS_SENSOR_BARRIER  4  //(analog pin)
+   #define PINS_SENSOR_MIC      3  //(analog pin)
+#endif
 
 #ifdef BOARD_ARDUINO_MEGA    // For ArduinoMega compatibility
   #define PINS_FLASH1        56 // Mega pin 56 = Duemilanove 16 (digital pin)
   #define PINS_FLASH2        55 // Mega pin 55 = Duemilanove 15 (digital pin)
   #define PINS_DEVICE        54 // Mega pin 54 = Duemilanove 14 (digital pin)
-#else  
-  #define PINS_FLASH1        16 //(digital pin)
-  #define PINS_FLASH2        15 //(digital pin)
-  #define PINS_DEVICE        14 //(digital pin)
+#else
+  #ifdef PVE 
+    #define PINS_FLASH1        1 //(analog pin)
+    // #define PINS_FLASH2        15 //(digital pin)
+    #define PINS_DEVICE        0 //(analog pin)
+  #else
+    #define PINS_FLASH1        16 //(digital pin)
+    #define PINS_FLASH2        15 //(digital pin)
+    #define PINS_DEVICE        14 //(digital pin)
+  #endif
 #endif
 
 #define PINS_LASER           PINS_DEVICE  // alias(digital pin)
@@ -391,15 +421,19 @@ void setup()
   // Pinmode inputs
   pinMode(PINS_BTN_A,          INPUT);     
   pinMode(PINS_BTN_B,          INPUT);    
-  pinMode(PINS_SENSOR_SHOCK,   INPUT); 
+  pinMode(PINS_SENSOR_SHOCK,   INPUT);
+#ifndef PVE   
   pinMode(PINS_SENSOR_BARRIER, INPUT);
+#endif
   pinMode(PINS_SENSOR_MIC,     INPUT);  
 
   // Pinmode outputs
   pinMode(PINS_SHUTTER,        OUTPUT);
   pinMode(PINS_AUTOFOCUS,      OUTPUT);
   pinMode(PINS_FLASH1,         OUTPUT);
+#ifndef PVE
   pinMode(PINS_FLASH2,         OUTPUT);
+#endif
   pinMode(PINS_LCD_LED,        OUTPUT);
   pinMode(PINS_LCD_RS,         OUTPUT);
   pinMode(PINS_LCD_ENABLE,     OUTPUT);

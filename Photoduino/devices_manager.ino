@@ -79,8 +79,10 @@ void sensor_getConfiguration(byte sensorType, unsigned int **limitValue, byte *s
    if (sensorType == SENSOR_TYPE_NONE) {  }
    else if (sensorType == SENSOR_TYPE_AUDIO) { *sensorPin = PINS_SENSOR_MIC; *sensorMode = SENSOR_MODE_HIGHER; *limitValue = &sensorTriggerMode_sensorAudioLimit; }
    else if (sensorType == SENSOR_TYPE_SHOCK) { *sensorPin = PINS_SENSOR_SHOCK; *sensorMode = SENSOR_MODE_HIGHER; *limitValue = &sensorTriggerMode_sensorShockLimit; }
+#ifndef PVE
    else if (sensorType == SENSOR_TYPE_LIGHT) { *sensorPin = PINS_SENSOR_BARRIER; *sensorMode = SENSOR_MODE_HIGHER; *limitValue = &sensorTriggerMode_sensorLightLimit;}
    else if (sensorType == SENSOR_TYPE_BARRIER) { *sensorPin = PINS_SENSOR_BARRIER; *sensorMode = SENSOR_MODE_LOWER; *limitValue = &sensorTriggerMode_sensorBarrierLimit;}
+#endif
 }
 
 // Waits for sensor cross the limit
@@ -254,7 +256,7 @@ void display_printUnits(byte units){
   lcd.print(")");
 }
 
-// Print sesnor type value
+// Print sensor type value
 void display_printSensorType(byte type){
   lcd.print("(");
   if(type==SENSOR_TYPE_NONE) display_printMessage(MSG_NONE);

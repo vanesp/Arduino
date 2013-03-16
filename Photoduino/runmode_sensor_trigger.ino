@@ -42,7 +42,9 @@ void runAs_sensorTriggerMode() {
          camera_shutterBegin(system_cameraShutterLag); 
           
          if (system_useFlash1) flash_shoot(sensorTriggerMode_preFlash1Time, PINS_FLASH1);
-         if (system_useFlash2) flash_shoot(sensorTriggerMode_preFlash2Time, PINS_FLASH2); 
+#ifndef PVE
+         if (system_useFlash2) flash_shoot(sensorTriggerMode_preFlash2Time, PINS_FLASH2);
+#endif 
        }
      }
      
@@ -58,7 +60,9 @@ void runAs_sensorTriggerMode() {
        
        if(!cancelFlag) {
          if (system_useFlash1) flash_shoot(sensorTriggerMode_preFlash1Time, PINS_FLASH1);
+#ifndef PVE
          if (system_useFlash2) flash_shoot(sensorTriggerMode_preFlash2Time, PINS_FLASH2); 
+#endif
        }
      }  
      
@@ -77,7 +81,9 @@ void runAs_sensorTriggerMode() {
        if(!cancelFlag) {
          
          if (system_useFlash1) flash_shoot(sensorTriggerMode_preFlash1Time, PINS_FLASH1);
+#ifndef PVE
          if (system_useFlash2) flash_shoot(sensorTriggerMode_preFlash2Time, PINS_FLASH2); 
+#endif
        }          
      }
     

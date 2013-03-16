@@ -49,8 +49,9 @@ void sysexCallback(byte command, byte argc, byte*argv)
        case REMOTE_CMD_MANUAL_CONTROL_SHUTTER_STOP  : camera_shutterEnd(0);break;  
        
        case REMOTE_CMD_MANUAL_CONTROL_SHOOT_FLASH1  : flash_shoot(0, PINS_FLASH1); break;
+#ifndef PVE
        case REMOTE_CMD_MANUAL_CONTROL_SHOOT_FLASH2  : flash_shoot(0, PINS_FLASH2); break;
-       
+#endif       
        case REMOTE_CMD_MANUAL_CONTROL_DEVICE_ON     : digitalWrite(PINS_DEVICE,HIGH); break;
        case REMOTE_CMD_MANUAL_CONTROL_DEVICE_OFF    : digitalWrite(PINS_DEVICE,LOW); break;
        
