@@ -21,9 +21,16 @@ void runAs_sensorTriggerMode() {
    display_printTitle(MSG_RUNNING);
    
    keyboard_waitForNokey();
-    
+
+#ifndef PVE    
    attachInterrupt(0, keyboard_interrupts, CHANGE);
    attachInterrupt(1, keyboard_interrupts, CHANGE);
+#else
+   // use the local interrupt PCI0 vector
+   PCMSK0 |= 0b00010100; // enable PC interrupts on arduino pins PCINT2 = PB2 = pin D10,  and PCINT4 = PB2 = D12, which are in group PCI0
+   PCICR |= 1; // enable PCI0 pin group interrupt
+#endif
+  
    
    for(unsigned int cyclesCounter = 0; (cancelFlag==false && !(sensorTriggerMode_numCycles>0 && cyclesCounter >= sensorTriggerMode_numCycles));cyclesCounter++) { 
      

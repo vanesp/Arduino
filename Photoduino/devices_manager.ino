@@ -115,11 +115,20 @@ boolean sensor_waitFor(byte sensorType, unsigned int limitTime){
   return result;
 }
 
+#ifndef PVE
 // Called in interrupt mode when any button is pressed
 void keyboard_interrupts(){
   if (!digitalRead(PINS_BTN_A)&&!digitalRead(PINS_BTN_B)) cancelFlag = false; 
   else cancelFlag = true;
 }
+#else
+// Our interrupt routing triggers on a PCI0 interrupt
+// Pin-Change interrupt, for group PCI0 (arduino mega pins 13..10, and 50..53)
+ISR(PCINT0_vect) {
+  if (!digitalRead(PINS_BTN_A)&&!digitalRead(PINS_BTN_B)) cancelFlag = false; 
+  else cancelFlag = true;
+}
+#endif
 
 // Scans keyboard in normal mode
 void keyboard_scan() { 

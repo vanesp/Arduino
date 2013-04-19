@@ -191,6 +191,24 @@
 #define LCD_COLS             16 // columns
 #define LCD_ROWS             2  // rows
 
+
+/*
+ * Pin Change interrupts
+ * PCI0 triggers on PCINT7..0
+ * PCI1 triggers on PCINT14..8
+ * PCI2 triggers on PCINT23..16
+ * PCMSK2, PCMSK1, PCMSK0 registers control which pins contribute.
+ *
+ * The following table is useful:
+ *
+ * Arduino pin  AVR pin    PCINT #            PCI #
+ * -----------  ---------  -----------------  -----
+ * 0 - 7        PD0 - PD7  PCINT16 - PCINT23  PCI2
+ * 8 - 13       PB0 - PB5  PCINT0 - PCINT5    PCI0
+ * 14 - 19      PC0 - PC5  PCINT8 - PCINT13   PCI1
+ *
+ */
+
 // Pinout settings
 #ifdef PVE // it's my special board
    #define PINS_LCD_LED         3  //(digital pin) R/W pin...
@@ -202,7 +220,7 @@
    #define PINS_LCD_DB7         8  //(digital pin)
    #define PINS_BUZZER          11  //(digital pin with pwm)
    #define PINS_AUTOFOCUS       13  //(digital pin)
-   #define PINS_BTN_A           12  //(digital pin)
+   #define PINS_BTN_A           12  //(digital pin) Note: if these values change the interrupt code in devices manager / runmode_* needs changing
    #define PINS_BTN_B           10  //(digital pin)
 
    #define PINS_SHUTTER         2   //(analog pin)
