@@ -9,7 +9,12 @@
 // other sensor values are being collected and averaged in a more regular cycle.
 
 // PvE: changes made to allow for non-struct data sending to allow processing in the php code
-// On my board, the ports used are Port 2 (SHT11) and Port 3 (LDR, PIR)
+
+// The Studeerkamer Jeenode has the Roomboard connected to Port 2 and 3 and uses the SHT11, Roomnode id = 2
+// The Woonkamer Jeenode has the Roomboard connected to Port 1 (HYT131) and 4, Roomnode id = 3
+
+#define STUDEER 1
+// #define WOON 1
 
 #include <JeeLib.h>
 #include <PortsSHT11.h>
@@ -19,9 +24,19 @@
 #define SERIAL  0   // set to 1 to also report readings on the serial port
 #define DEBUG   0   // set to 1 to display each loop() run and PIR trigger
 
-#define SHT11_PORT  2   // defined if SHT11 is connected to a port
-#define LDR_PORT    3   // defined if LDR is connected to a port's AIO pin
-#define PIR_PORT    3   // defined if PIR is connected to a port's DIO pin
+#if STUDEER
+  #define SHT11_PORT  2   // defined if SHT11 is connected to a port
+  #define LDR_PORT    3   // defined if LDR is connected to a port's AIO pin
+  #define PIR_PORT    3   // defined if PIR is connected to a port's DIO pin
+  #define NODE        2
+#endif
+
+#if WOON
+  #define HYT131_PORT  1   // defined if HYT131 is connected to a port
+  #define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
+  #define PIR_PORT    4   // defined if PIR is connected to a port's DIO pin
+  #define NODE        3
+#endif
 
 #define MEASURE_PERIOD  600 // how often to measure, in tenths of seconds
 #define RETRY_PERIOD    10  // how soon to retry if ACK didn't come in
@@ -34,7 +49,7 @@
 // mode 3 (full powerdown) can only be used with 258 CK startup fuses
 #define RADIO_SYNC_MODE 2
 
-// External definitions from RF12.h
+// External definitions from RF12.h to allow IT+ communications
 extern boolean ITPlusFrame;
 extern void rf12_initialize_overide_ITP ();
 
@@ -64,6 +79,11 @@ struct {
 
 #if SHT11_PORT
     SHT11 sht11 (SHT11_PORT);
+#endif
+
+#if HYT131_PORT
+    PortI2C hyti2cport (HYT131_PORT);
+    HYT131 hyt131 (hyti2cport);
 #endif
 
 #if LDR_PORT
@@ -169,6 +189,12 @@ static void doMeasure() {
         payload.humi = smoothedAverage(payload.humi, humi, firstTime);
         payload.temp = smoothedAverage(payload.temp, temp, firstTime);
     #endif
+    #if HYT131_PORT
+        int humi, temp;
+        hyt131.reading(temp, humi);
+        payload.humi = smoothedAverage(payload.humi, humi/10, firstTime);
+        payload.temp = smoothedAverage(payload.temp, temp, firstTime);
+    #endif
     #if LDR_PORT
         ldr.digiWrite2(1);  // enable AIO pull-up
         byte light = ~ ldr.anaRead() >> 2;
@@ -190,9 +216,8 @@ static void serialFlush () {
 // periodic report, i.e. send out a packet and optionally report on serial port
 static void doReport() {
     rf12_sleep(RF12_WAKEUP);
-    while (!rf12_canSend())
-        rf12_recvDone();
-    rf12_sendStart(0, &payload, sizeof payload, RADIO_SYNC_MODE);
+    rf12_sendNow(0, &payload, sizeof payload);
+    rf12_sendWait(RADIO_SYNC_MODE);
     rf12_sleep(RF12_SLEEP);
 
     #if SERIAL
@@ -221,9 +246,9 @@ static void doTrigger() {
 
     for (byte i = 0; i < RETRY_LIMIT; ++i) {
         rf12_sleep(RF12_WAKEUP);
-        while (!rf12_canSend())
-            rf12_recvDone();
-        rf12_sendStart(RF12_HDR_ACK, &payload, sizeof payload, RADIO_SYNC_MODE);
+        rf12_sendNow(RF12_HDR_ACK, &payload, sizeof payload);
+        rf12_sendWait(RADIO_SYNC_MODE);
+
         byte acked = waitForAck();
         rf12_sleep(RF12_SLEEP);
 
@@ -255,19 +280,18 @@ void blink (byte pin) {
 }
 
 void setup () {
-    // rf12_initialize(2, RF12_868MHZ, 5); // 868 Mhz, net group 5, node 3
     // Set-up RF12 library
-    myNodeID = rf12_initialize(2, RF12_868MHZ, 0xd4); // 0xd4 needed for IT+
+    // Choose Roomnode id here !
+    myNodeID = rf12_initialize(NODE, RF12_868MHZ, 0xd4); // 0xd4 needed for IT+
     // Overide settings for RFM01/IT+ compliance
     rf12_initialize_overide_ITP();
 
     #if SERIAL || DEBUG
         Serial.begin(57600);
-        Serial.print("\n[roomNode.2]");
-        // myNodeID = rf12_config();
+        Serial.print("\n[roomNode.");
+        Serial.print(NODE);
+        Serial.print("]");
         serialFlush();
-    #else
-        // myNodeID = rf12_config(0); // don't report info on the serial port
     #endif
     
     rf12_sleep(RF12_SLEEP); // power down

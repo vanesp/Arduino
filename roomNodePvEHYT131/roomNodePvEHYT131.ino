@@ -9,9 +9,13 @@
 // other sensor values are being collected and averaged in a more regular cycle.
 
 // PvE: changes made to allow for non-struct data sending to allow processing in the php code
-// On my board, the ports used are Port 2 (SHT11) and Port 3 (LDR, PIR)
+
+// The Studeerkamer Jeenode has the Roomboard connected to Port 2 and 3 and uses the SHT11
+// The Woonkamer Jeenode has the Roomboard connected to Port 1 (HYT131) and 4
+
 
 #include <JeeLib.h>
+#include <PortsSHT11.h>
 #include <avr/sleep.h>
 #include <util/atomic.h>
 
@@ -33,7 +37,7 @@
 // mode 3 (full powerdown) can only be used with 258 CK startup fuses
 #define RADIO_SYNC_MODE 2
 
-// External definitions from RF12.h
+// External definitions from RF12.h to allow IT+ communications
 extern boolean ITPlusFrame;
 extern void rf12_initialize_overide_ITP ();
 
@@ -61,9 +65,13 @@ struct {
 
 // Conditional code, depending on which sensors are connected and how:
 
+#if SHT11_PORT
+    SHT11 sht11 (SHT11_PORT);
+#endif
+
 #if HYT131_PORT
-    PortI2C myBus (HYT131_PORT);
-    DeviceI2C hyt131 (myBus, 0x28);
+    PortI2C hyti2cport (HYT131_PORT);
+    HYT131 hyt131 (hyti2cport);
 #endif
 
 #if LDR_PORT
@@ -132,7 +140,7 @@ static int smoothedAverage(int prev, int next, byte firstTime =0) {
 
 // spend a little time in power down mode while the HYT131 does a measurement
 static void shtDelay () {
-    Sleepy::loseSomeTime(100); // must wait at least 100 ms
+    Sleepy::loseSomeTime(32); // must wait at least 20 ms
 }
 
 // wait a few milliseconds for proper ACK to me, return true if indeed received
@@ -155,7 +163,28 @@ static void doMeasure() {
     
     payload.lobat = rf12_lowbat();
 
-    #if HYT131_PORT
+    #if SHT11_PORT
+#ifndef __AVR_ATtiny84__
+        sht11.measure(SHT11::HUMI, shtDelay);        
+        sht11.measure(SHT11::TEMP, shtDelay);
+        float h, t;
+        sht11.calculate(h, t);
+        int humi = h + 0.5, temp = 10 * t + 0.5;
+#else
+        //XXX TINY!
+        int humi = 50, temp = 25;
+#endif
+        payload.humi = smoothedAverage(payload.humi, humi, firstTime);
+        payload.temp = smoothedAverage(payload.temp, temp, firstTime);
+    #endif
+   #if HYT131_PORT
+        int humi, temp;
+        hyt131.reading(temp, humi);
+        payload.humi = smoothedAverage(payload.humi, humi/10, firstTime);
+        payload.temp = smoothedAverage(payload.temp, temp, firstTime);
+    #endif
+
+/*    #if HYT131_PORT
 #ifndef __AVR_ATtiny84__
         // start measurement
         hyt131.send();
@@ -182,6 +211,7 @@ static void doMeasure() {
         payload.humi = humi;
         payload.temp = smoothedAverage(payload.temp, temp, firstTime);
     #endif
+*/
     #if LDR_PORT
         ldr.digiWrite2(1);  // enable AIO pull-up
         byte light = ~ ldr.anaRead() >> 2;
@@ -203,9 +233,8 @@ static void serialFlush () {
 // periodic report, i.e. send out a packet and optionally report on serial port
 static void doReport() {
     rf12_sleep(RF12_WAKEUP);
-    while (!rf12_canSend())
-        rf12_recvDone();
-    rf12_sendStart(0, &payload, sizeof payload, RADIO_SYNC_MODE);
+    rf12_sendNow(0, &payload, sizeof payload);
+    rf12_sendWait(RADIO_SYNC_MODE);
     rf12_sleep(RF12_SLEEP);
 
     #if SERIAL
@@ -234,9 +263,13 @@ static void doTrigger() {
 
     for (byte i = 0; i < RETRY_LIMIT; ++i) {
         rf12_sleep(RF12_WAKEUP);
+        rf12_sendNow(RF12_HDR_ACK, &payload, sizeof payload);
+        rf12_sendWait(RADIO_SYNC_MODE);
+/*
         while (!rf12_canSend())
             rf12_recvDone();
         rf12_sendStart(RF12_HDR_ACK, &payload, sizeof payload, RADIO_SYNC_MODE);
+*/
         byte acked = waitForAck();
         rf12_sleep(RF12_SLEEP);
 
@@ -270,15 +303,16 @@ void blink (byte pin) {
 void setup () {
     // rf12_initialize(3, RF12_868MHZ, 5); // 868 Mhz, net group 5, node 3
     // Set-up RF12 library
+    // Choose Roomnode id here !
     myNodeID = rf12_initialize(3, RF12_868MHZ, 0xd4); // 0xd4 needed for IT+
     // Overide settings for RFM01/IT+ compliance
     rf12_initialize_overide_ITP();
 
     
-    #if HYT131_PORT
+/*    #if HYT131_PORT
       hyt131.isPresent();
     #endif
-    
+*/    
     #if SERIAL || DEBUG
         Serial.begin(57600);
         Serial.print("\n[roomNode.3]");
