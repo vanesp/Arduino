@@ -1,4 +1,6 @@
-// Try reading the bandgap reference voltage to measure current VCC voltage.
+/// @dir bandgap
+/// Try reading the bandgap reference voltage to measure current VCC voltage.
+/// @see http://jeelabs.org/2012/05/12/improved-vcc-measurement/
 // 2012-04-22 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <JeeLib.h>
@@ -34,9 +36,7 @@ void loop() {
   Sleepy::loseSomeTime(16);
 
   rf12_sleep(RF12_WAKEUP);
-  while (!rf12_canSend())
-    rf12_recvDone();
-  rf12_sendStart(0, &x, sizeof x);
+  rf12_sendNow(0, &x, sizeof x);
   rf12_sendWait(2);
   rf12_sleep(RF12_SLEEP);
 

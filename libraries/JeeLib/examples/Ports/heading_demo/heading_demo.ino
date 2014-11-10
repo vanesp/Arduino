@@ -1,4 +1,5 @@
-// Demo of the Heading Board based on the HDPM01 (with barometer and compass)
+/// @dir heading_demo
+/// Demo of the Heading Board based on the HDPM01 (with barometer and compass).
 // 2010-03-22 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <JeeLib.h>
@@ -20,9 +21,7 @@ void loop () {
         sensor.pressure(payload.temp, payload.pres);
         sensor.heading(payload.xaxis, payload.yaxis);
         
-        while (!rf12_canSend())
-            rf12_recvDone();
-        rf12_sendStart(0, &payload, sizeof payload, 2);
+        rf12_sendNow(0, &payload, sizeof payload);
 
         Serial.print("HDPM ");
         Serial.print(payload.temp);

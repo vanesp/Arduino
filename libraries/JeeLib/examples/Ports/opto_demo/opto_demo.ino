@@ -1,4 +1,5 @@
-// Demo of the opto-coupler plug
+/// @dir opto_demo
+/// Demo of the opto-coupler plug.
 // 2010-09-26 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <JeeLib.h>
@@ -49,9 +50,8 @@ void loop () {
     payload[6] = testOut.digiRead();
     payload[7] = testOut.digiRead2();
     
-    while (!rf12_canSend())
-        rf12_recvDone();
-    rf12_sendStart(0, payload, sizeof payload, 2);
+    rf12_sendNow(0, payload, sizeof payload);
+    rf12_sendWait(2);
 
     Sleepy::loseSomeTime(1000);
 }

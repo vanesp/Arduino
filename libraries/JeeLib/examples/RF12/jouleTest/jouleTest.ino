@@ -1,4 +1,5 @@
-// Send out a radio packet every minute, consuming as little power as possible
+/// @dir jouleTest
+/// Send out a radio packet every minute, consuming as little power as possible.
 // 2010-08-29 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <JeeLib.h>
@@ -22,11 +23,9 @@ void setup() {
 }
 
 void loop() {
-  while (!rf12_canSend())
-    rf12_recvDone();
-  
   ++payload[0];
-  rf12_sendStart(0, &payload, sizeof payload);
+  
+  rf12_sendNow(0, &payload, sizeof payload);
   rf12_sendWait(3); // mode 3 requires 258 CK startup fuses
   
   rf12_sleep(RF12_SLEEP);

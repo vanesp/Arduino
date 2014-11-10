@@ -1,5 +1,6 @@
-// This can run on several nodes, and get data to the central "poller" node.
-// 2011-11-23 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
+/// @dir pollee
+/// This can run on several nodes, and get data to the central "poller" node.
+// 2011-11-23 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 //
 // Warning: this test will flood the radio band so nothing else gets through!
 //

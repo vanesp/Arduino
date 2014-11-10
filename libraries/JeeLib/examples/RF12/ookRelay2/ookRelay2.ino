@@ -1,4 +1,5 @@
-// Generalized decoder and relay for 868 MHz and 433 MHz OOK signals.
+/// @dir ookRelay2
+/// Generalized decoder and relay for 868 MHz and 433 MHz OOK signals.
 // 2010-04-11 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <JeeLib.h>
@@ -336,9 +337,8 @@ void loop () {
 #if PIN_868
         rf12_initialize(NODEID, RF12_868MHZ, NETGRP);
 #endif
-        while (!rf12_canSend())
-            rf12_recvDone(); // ignores incoming
-        rf12_sendStart(0, packetBuffer, packetFill, 1);
+        rf12_sendNow(0, packetBuffer, packetFill);
+        rf12_sendWait(1);
 #if PIN_868
         rf12_init_OOK();
 #endif

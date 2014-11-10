@@ -1,8 +1,11 @@
-// Demo display for the Graphics Boad
+/// @dir glcd_demo
+/// Demo display for the Graphics Boad.
+/// @see http://jeelabs.org/2010/11/15/meet-the-graphics-board/
 // 2010-11-14 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <ST7565.h>
 #include <JeeLib.h>
+#define BGLIGHT 3 // Backlight (IRQ) Pin
 
 ST7565 glcd(14, 4, 17, 7);
 
@@ -17,6 +20,11 @@ void setup () {
     glcd.st7565_command(CMD_SET_ALLPTS_NORMAL);
     glcd.st7565_set_brightness(0x15);
     glcd.clear();
+    pinMode(BGLIGHT, OUTPUT); 
+    for (int i = 1; i < 255; i++) {
+        analogWrite(BGLIGHT, i); 
+        delay(10);
+    } // fade in
 
     // draw a string at a location
     glcd.drawstring(40, 0, "ARDUINO");
@@ -36,7 +44,10 @@ void setup () {
     glcd.drawrect(0, 28, 127, 15, WHITE);
 
     glcd.display();
-    
+    for (int j = 255; j >= 1; j--) {
+        analogWrite(BGLIGHT, j); 
+        delay(50);
+    } // fade out
     Sleepy::powerDown();
 }
 

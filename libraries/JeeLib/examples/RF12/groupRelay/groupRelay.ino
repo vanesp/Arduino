@@ -1,4 +1,5 @@
-// Relay packets from one net group to another to extend the range.
+/// @dir groupRelay
+/// Relay packets from one net group to another to extend the range.
 // 2011-01-11 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include <JeeLib.h>
@@ -153,9 +154,7 @@ void loop () {
     rf12_initialize(config.out_node, code2type(config.freq), config.out_group);
     
     // send our packet, once possible
-    while (!rf12_canSend())
-        rf12_recvDone();
-    rf12_sendStart(hdr, buf, len + config.multi_node, 1);
+    rf12_sendNow(hdr, buf, len + config.multi_node);
     
     if (wantsAck) {
         timer.set(100); // wait up to 100 ms for a valid ack packet
@@ -173,8 +172,6 @@ void loop () {
         memcpy(buf, (void*) rf12_data, rf12_len);
 
         // send ACK packet back, once possible
-        while (!rf12_canSend())
-            rf12_recvDone();
-        rf12_sendStart(ackReply, buf, len, 1);
+        rf12_sendNow(ackReply, buf, len);
     }
 }

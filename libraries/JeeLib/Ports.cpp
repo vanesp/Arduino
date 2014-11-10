@@ -1,4 +1,5 @@
-// Ports library definitions
+/// @file
+/// Ports library definitions.
 // 2009-02-13 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 #include "Ports.h"
@@ -10,7 +11,8 @@
 // ATtiny84 has BODS and BODSE for ATtiny84, revision B, and newer, even though
 // the iotnx4.h header doesn't list it, so we *can* disable brown-out detection!
 // See the ATtiny24/44/84 datasheet reference, section 7.2.1, page 34.
-#if (defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny44__)) && !defined(BODSE) && !defined(BODS)
+#if (defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny44__)) && \
+    !defined(BODSE) && !defined(BODS)
 #define BODSE 2
 #define BODS  7
 #endif
@@ -21,6 +23,67 @@
 #define PWM_CHANGE  0x30    // an analog (pwm) value was changed on port 2..3
 #define ANA_MASK    0x0F    // an analog read was requested on port 1..4
 
+/// @class PortI2C
+/// @details
+/// The PortI2C class is a special version of class Port implementing the I2C /
+/// Two-Wire Interface (TWI) protocol. Allows using any port as I2C bus master.
+/// When used for I2C, DIO is used as SDA and AIO as SCL.
+/// Unlike the Wire library for the Arduino, which is a more advanced solution
+/// for the hardware I2C lines of an ATmega, the PortI2C class is implemented
+/// entirely in software using "bit-banging". Another difference is that
+/// PortI2C does not use interrupts and will keep the microcontroller occupied
+/// while it is performing I/O transfers.
+/// @see DeviceI2C
+
+/// @class DeviceI2C
+/// @details
+/// Since I2C is a bus, there are actually two classes involved. A PortI2C
+/// object manages a port as I2C master for one or more objects of class
+/// DeviceI2C, each representing a separate device. You can have multiple ports
+/// as I2C bus (running at a different speed perhaps), each talking to multiple
+/// I2C devices. Devices sharing the same bus must each have a unique ID in the
+/// range 0 .. 127.
+/// @see PortI2C
+
+/// @fn uint32_t Port::pulse(uint8_t state, uint32_t timeout =1000000L) const
+/// @details
+/// Measure the length of a pulse in microseconds on the DIO (pulse) or
+/// AIO (pulse2) line. The optional timeout value specifies how many
+/// microseconds to wait for a pulse - of none is received, 0 is returned.
+/// @param state Polarity of the pulse to wait for - HIGH (1) or LOW (0).
+/// @param timeout Max number of microseconds to wait.
+///                Default is 1,000,000, i.e. 1 second.
+/// @see http://arduino.cc/en/Reference/pulseIn for more details.
+
+/// @fn void Port::shift(uint8_t bitOrder, uint8_t value) const
+/// @details
+/// This can be used to send out a pulse sequence of bits or to read such
+/// a pulse sequence in. The AIO line is cycled while the value bits are
+/// "shifted" and written out to (shift, shiftWrite) or read in from
+/// (shiftRead) the DIO pin.
+/// @param bitOrder How to shift bits in or out: either LSBFIRST (0) or
+///                 MSBFIRST (1), where LSB stands for Least Significant
+///                 Bit and MSB for Most Significant Bit.
+/// @param value The value to shift out, with as many lower bits as needed.
+/// This argument is a byte for shift() and a word for the more general
+/// shiftWrite() function.
+/// @see http://arduino.cc/en/Tutorial/ShiftOut
+
+/// @fn static void Sleepy::powerDown ();
+/// Take the ATmega into the deepest possible power down state. Getting out of
+/// this state requires setting up the watchdog beforehand, or making sure that
+/// suitable interrupts will occur once powered down.
+/// Disables the Brown Out Detector (BOD), the A/D converter (ADC), and other
+/// peripheral functions such as TWI, SPI, and UART before sleeping, and
+/// restores their previous state when back up.
+
+/// Shift a number of bites in to read them.
+/// @param bitOrder How to shift bits in or out: either LSBFIRST (0) or
+///                 MSBFIRST (1), where LSB stands for Least Significant
+///                 Bit and MSB for Most Significant Bit.
+/// @param count The number of bits to shift in or out. Must be in the
+/// range 1 .. 16, the default is 8.
+/// @see shift()
 uint16_t Port::shiftRead(uint8_t bitOrder, uint8_t count) const {
     uint16_t value = 0, mask = bit(LSBFIRST ? 0 : count - 1);
     for (uint8_t i = 0; i < count; ++i) {
@@ -38,6 +101,17 @@ uint16_t Port::shiftRead(uint8_t bitOrder, uint8_t count) const {
     return value;
 }
 
+/// The shiftWrite() call is similar but more general than the shift() call
+/// in that it allows an adjustable number of bits to be sent, not just 8.
+/// @param bitOrder How to shift bits in or out: either LSBFIRST (0) or
+///                 MSBFIRST (1), where LSB stands for Least Significant
+///                 Bit and MSB for Most Significant Bit.
+/// @param value The value to shift out, with as many lower bits as needed.
+/// This argument is a byte for shift() and a word for the more general
+/// shiftWrite() function.
+/// @param count The number of bits to shift in or out. Must be in the
+/// range 1 .. 16, the default is 8.
+/// @see shift()
 void Port::shiftWrite(uint8_t bitOrder, uint16_t value, uint8_t count) const {
     uint16_t mask = bit(LSBFIRST ? 0 : count - 1);
     for (uint8_t i = 0; i < count; ++i) {
@@ -192,6 +266,10 @@ void MilliTimer::set(word ms) {
         next = millis() + ms - 1;
 }
 
+/** Turn on the corresponding leds.
+ *  @param mask 0 for neither led, 1 for the first led, 2 for the second led
+ *  or 3 for both leds.
+ */
 void BlinkPlug::ledOn (byte mask) {
     if (mask & 1) {
         digiWrite(0);
@@ -204,6 +282,10 @@ void BlinkPlug::ledOn (byte mask) {
     leds |= mask; //TODO could be read back from pins, i.s.o. saving here
 }
 
+/** Turn off the corresponding leds.
+ *  @param mask 0 for neither led, 1 for the first led, 2 for the second led
+ *  or 3 for both leds.
+ */
 void BlinkPlug::ledOff (byte mask) {
     if (mask & 1) {
         mode(INPUT);
@@ -216,6 +298,11 @@ void BlinkPlug::ledOff (byte mask) {
     leds &= ~ mask; //TODO could be read back from pins, i.s.o. saving here
 }
 
+/** Read entire BlinkPlug state.
+ *  @return One byte with the state of the leds on the 1st and 2nd least
+ *  significant bits and the state of the buttons on the 3rd and 4th least
+ *  significant bits.
+ */
 byte BlinkPlug::state () {
     byte saved = leds;
     ledOff(1+2);
@@ -224,7 +311,7 @@ byte BlinkPlug::state () {
     return result;
 }
 
-//TODO deprecated, use buttonCheck() !
+/// @deprecated This is obsolete code, use buttonCheck().
 byte BlinkPlug::pushed () {
     if (debounce.idle() || debounce.poll()) {
         byte newState = state();
@@ -238,6 +325,9 @@ byte BlinkPlug::pushed () {
     return 0;
 }
 
+/** Check the state of the buttons.
+ *  @return The corresponding enum state: ON1, OFF1, ON2, or OFF2.
+ */
 byte BlinkPlug::buttonCheck () {
     // collect button changes in the checkFlags bits, with proper debouncing
     if (debounce.idle() || debounce.poll()) {
@@ -263,7 +353,7 @@ byte BlinkPlug::buttonCheck () {
     return lastState == 3 ? ALL_ON : lastState ? SOME_ON : ALL_OFF;
 }
 
-void MemoryPlug::load (word page, void* buf, byte offset, int count) {
+void MemoryPlug::load (word page, byte offset, void* buf, int count) {
     // also don't load right after a save, see http://forum.jeelabs.net/node/469
     while (millis() < nextSave)
         ;
@@ -279,7 +369,7 @@ void MemoryPlug::load (word page, void* buf, byte offset, int count) {
     stop();
 }
 
-void MemoryPlug::save (word page, const void* buf, byte offset, int count) {
+void MemoryPlug::save (word page, byte offset, const void* buf, int count) {
     // don't do back-to-back saves, last one must have had time to finish!
     while (millis() < nextSave)
         ;
@@ -293,7 +383,7 @@ void MemoryPlug::save (word page, const void* buf, byte offset, int count) {
         write(*p++);
     stop();
 
-    nextSave = millis() + 6;
+    nextSave = millis() + 10;
     // delay(5);
 }
 
@@ -306,7 +396,7 @@ long MemoryStream::position (byte writing) const {
 
 byte MemoryStream::get () {
     if (pos == 0) {
-        dev.load(curr, buffer);
+        dev.load(curr, 0, buffer, sizeof buffer);
         curr += step;
     }
     return buffer[pos++];
@@ -315,7 +405,7 @@ byte MemoryStream::get () {
 void MemoryStream::put (byte data) {
     buffer[pos++] = data;
     if (pos == 0) {
-        dev.save(curr, buffer);
+        dev.save(curr, 0, buffer, sizeof buffer);
         curr += step;
     }
 }
@@ -323,7 +413,7 @@ void MemoryStream::put (byte data) {
 word MemoryStream::flush () {
     if (pos != 0) {
         memset(buffer + pos, 0xFF, 256 - pos);
-        dev.save(curr, buffer);
+      dev.save(curr, 0, buffer, sizeof buffer);
     }
     return curr;
 }
@@ -342,18 +432,28 @@ void MemoryStream::reset () {
 #define LCR     (3 << 3)
 #define RXLVL   (9 << 3)
 
+/** Set a UartPlug register.
+ *  @param reg The register to set.
+ *  @param value The value to write to the register.
+ */
 void UartPlug::regSet (byte reg, byte value) {
   dev.send();
   dev.write(reg);
   dev.write(value);
 }
 
+/** Read a UartPlug register.
+ *  @return reg The contents of the register read. 
+ */
 void UartPlug::regRead (byte reg) {
   dev.send();
   dev.write(reg);
   dev.receive();
 }
 
+/** Initialize a UartPlug.
+ *  @param baud	Baud rate for the serial port.
+ */
 void UartPlug::begin (long baud) {
     word divisor = 230400 / baud;
     regSet(LCR, 0x80);          // divisor latch enable
@@ -364,6 +464,9 @@ void UartPlug::begin (long baud) {
     dev.stop();
 }
 
+/** Test if UartPlug has incoming data.
+ *  @return True if data in device buffer. False if no data in device buffer.
+ */
 byte UartPlug::available () {
     if (in != out)
         return 1;
@@ -380,16 +483,23 @@ byte UartPlug::available () {
     return 1;
 }
 
+/** Read two bytes from the UartPlug's serial input.
+ *  @return Two bytes with the data read. 
+ */
 int UartPlug::read () {
     return available() ? rxbuf[out++] : -1;
 }
 
+/// Clear the RX and TX queues.
 void UartPlug::flush () {
     regSet(FCR, 0x07); // flush both RX and TX queues
     dev.stop();
     in = out;
 }
 
+/** Write data on the serial port of the UartPlug.
+ *  @param data	Byte of data to send out.
+ */
 WRITE_RESULT UartPlug::write (byte data) {
     regSet(THR, data);
     dev.stop();
@@ -434,6 +544,9 @@ void DimmerPlug::setMulti(byte reg, ...) const {
     stop();
 }
 
+/** Set the gain mode of the 16x multiplier in the LuxPlug.
+ *  @param high	Multiplier is off if 0, otherwise on.
+ */
 void LuxPlug::setGain(byte high) {
     send();
     write(0x81); // write to Timing regiser
@@ -441,6 +554,9 @@ void LuxPlug::setGain(byte high) {
     stop();
 }
 
+/** Read the raw data from the photodiodes.
+ *  @return Two bytes containing the raw data read from the sensor.
+ */
 const word* LuxPlug::getData() {
     send();
     write(0xA0 | DATA0LOW);
@@ -457,6 +573,11 @@ const word* LuxPlug::getData() {
 #define RATIO_SCALE 9	// scale ratio by 2^9
 #define CH_SCALE    10	// scale channel values by 2^10 
 
+/** Calculate Lux value from the raw data retreived.
+ *  @param iGain	gain, where 0:1X, 1:16X.
+ *  @param tInt	Integration time, where 0:13.7mS, 1:100mS, 2:402mS, 3:Manual
+ *  @return A 2 byte unsigned number containing the Lux value calculated.
+ */
 word LuxPlug::calcLux(byte iGain, byte tInt) const
 {
     unsigned long chScale; 
@@ -520,6 +641,18 @@ const int* GravityPlug::getAxes() {
     return data.w;
 }
 
+char GravityPlug::temperature() {
+    send();
+    write(0x08);
+    receive();
+    char temp = read(1) - 60;
+    stop();
+    return temp;
+}
+
+/** Select the channel on the multiplexer.
+ *  @param channel A number between 0..15.
+ */
 void InputPlug::select(uint8_t channel) {
     digiWrite(0);
     mode(OUTPUT);
@@ -615,7 +748,7 @@ void HeadingBoard::pressure(int& temp, int& pres) const {
     int dUT = (D2 - C5) - (corr * (long) corr * (D2 >= C5 ? A : B) >> C);
     // Serial.print("dUT = ");
     // Serial.println(dUT);
-    temp = 250 + (dUT * C6 >> 16) - (dUT >> D); 
+    temp = 250 + ((long) dUT * C6 >> 16) - (dUT >> D); 
 
     word D1 = adcValue(1);
     // Serial.print("D1 = ");
@@ -649,7 +782,7 @@ void HeadingBoard::heading(int& xaxis, int& yaxis) {
     compass.send();
     compass.write(0x00);
     compass.receive();
-    byte tmp, reg = compass.read(0);
+    byte tmp = compass.read(0);
     tmp = compass.read(0);
     xaxis = ((tmp << 8) | compass.read(0)) - 2048;
     tmp = compass.read(0);
@@ -673,7 +806,7 @@ float CompassBoard::heading () {
     write(0x00); // Mode: Continuous-Measurement Mode
     receive();
     int x = read2(0);
-    int z = read2(0);
+    /* int z = */ read2(0);
     int y = read2(1);
     stop();
     
@@ -705,7 +838,7 @@ void InfraredPlug::poll() {
         memset(buf, 0, sizeof buf);
     }
     // act only if the bit changed, using the low bit of the nibble fill count
-    if (bit != (fill & 1) && fill < 2 * sizeof buf) {
+    if (bit != (fill & 1) && fill < 2 * (int) sizeof buf) {
         uint32_t curr = micros(), diff = (curr - prev + 2) >> 2;
         if (diff > 65000)
             diff = 65000; // * 4 us, i.e. 260 ms
@@ -747,7 +880,7 @@ uint8_t InfraredPlug::decoder(uint8_t nibbles) {
                         return UNKNOWN;
                 // valid packet, convert in-place
                 for (byte i = 0; i < 4; ++i) {
-                    byte v;
+                    byte v = 0;
                     for (byte j = 0; j < 8; ++j)
                         v = (v << 1) | (buf[1+j+8*i] >> 5);
                     buf[i] = v;
@@ -821,11 +954,35 @@ long AnalogPlug::reading () {
   return raw;
 }
 
+void HYT131::reading (int& temp, int& humi, byte (*delayFun)(word ms)) {
+    // Start measurement
+    send();
+    stop();
+    
+    // Wait for completion (using user-supplied (low-power?) delay function)
+    if (delayFun)
+        delayFun(100);
+    else
+        delay(100);
+    
+    // Extract readings
+    receive();
+    uint16_t h = (read(0) & 0x3F) << 8;
+    h |= read(0);
+    uint16_t t = read(0) << 6;
+    t |= read(1) >> 2;
+    
+    // convert 0..16383 to 0..100% (*10)
+    humi = (h * 1000L >> 14);
+    // convert 0..16383 to -40 .. 125 (*10)
+    temp = (t * 1650L >> 14) - 400;
+}
+
 DHTxx::DHTxx (byte pinNum) : pin (pinNum) {
   digitalWrite(pin, HIGH);
 }
 
-bool DHTxx::reading (int& temp, int &humi) {
+bool DHTxx::reading (int& temp, int &humi, bool precise) {
   pinMode(pin, OUTPUT);
   delay(10); // wait for any previous transmission to end
   digitalWrite(pin, LOW);
@@ -889,14 +1046,53 @@ bool DHTxx::reading (int& temp, int &humi) {
   if (sum != data[5])
     return false;
   
-  word h = (data[1] << 8) | data[2];
-  humi = ((h >> 3) * 5) >> 4;     // careful with overflow
+  humi = precise ? (data[1] << 8) | data[2] : 10 * data[1];
 
-  int tmul = data[3] & 0x80 ? -5 : 5;
-  word t = ((data[3] & 0x7F) << 8) | data[4];
-  temp = ((t >> 3) * tmul) >> 4;  // careful with overflow
+  word t = precise ? ((data[3] & 0x7F) << 8) | data[4] : 10 * data[3];
+  temp = data[3] & 0x80 ? - t : t;
 
   return true;
+}
+
+void ColorPlug::setGain (byte gain, byte prescaler) {
+    send();
+    write(0x80 | GAIN); // write to Gain regiser
+    write((gain << 4) | prescaler);
+    stop();
+}
+
+const word* ColorPlug::getData () {
+    send();
+    write(0x80 | BLOCKREAD); // write to Blockread register
+    receive();
+    data.b[2] = read(0); // green low
+    data.b[3] = read(0); // green high
+    data.b[0] = read(0); // red low
+    data.b[1] = read(0); // red high
+    data.b[4] = read(0); // blue low
+    data.b[5] = read(0); // blue high
+    data.b[6] = read(0); // clear low
+    data.b[7] = read(1); // clear high
+    stop();
+    return data.w;
+}
+
+const word* ColorPlug::chromaCCT () {
+    chromacct[0] = chromacct[1] = chromacct[2] = 0;
+    long X = -14282L * data.w[0] + 154924L * data.w[1] - 95641L * data.w[2];
+    long Y = -32466L * data.w[0] + 157837L * data.w[1] - 73191L * data.w[2];
+    long Z = -68202L * data.w[0] +  77073L * data.w[1] + 56332L * data.w[2];
+    if (X > 0 && Y > 0 && Z > 0) { // chromaticity valid 
+      // it'd be nice if we could get rid of these floating point calculations
+      // but X, Y, or Z may have up to 28 bits, so we'd need to drop precision
+      chromacct[0] = (X * 1000.0) / (X + Y + Z);
+      chromacct[1] = (Y * 1000.0) / (X + Y + Z);
+      double n = (chromacct[0] - 332.0) / (185.8 - chromacct[1]);
+      chromacct[2] = 449 * n * n * n + 3525 * n * n + 6823.3 * n + 5520.33;      
+      if (chromacct[2] > 10000) // improbable value for color temperature
+        chromacct[2] = 0;
+    }
+    return chromacct;
 }
 
 // ISR(WDT_vect) { Sleepy::watchdogEvent(); }
@@ -920,17 +1116,17 @@ void Sleepy::watchdogInterrupts (char mode) {
     }
 }
 
+/// @see http://www.nongnu.org/avr-libc/user-manual/group__avr__sleep.html
 void Sleepy::powerDown () {
     byte adcsraSave = ADCSRA;
     ADCSRA &= ~ bit(ADEN); // disable the ADC
-    // see http://www.nongnu.org/avr-libc/user-manual/group__avr__sleep.html
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
         sleep_enable();
         // sleep_bod_disable(); // can't use this - not in my avr-libc version!
 #ifdef BODSE
         MCUCR = MCUCR | bit(BODSE) | bit(BODS); // timed sequence
-        MCUCR = MCUCR & ~ bit(BODSE) | bit(BODS);
+        MCUCR = (MCUCR & ~ bit(BODSE)) | bit(BODS);
 #endif
     }
     sleep_cpu();
@@ -977,13 +1173,13 @@ void Sleepy::watchdogEvent() {
     ++watchdogCounter;
 }
 
-Scheduler::Scheduler (byte size) : maxTasks (size), remaining (~0) {
+Scheduler::Scheduler (byte size) : remaining (~0), maxTasks (size) {
     byte bytes = size * sizeof *tasks;
     tasks = (word*) malloc(bytes);
     memset(tasks, 0xFF, bytes);
 }
 
-Scheduler::Scheduler (word* buf, byte size) : tasks (buf), maxTasks (size), remaining(~0) {
+Scheduler::Scheduler (word* buf, byte size) : tasks (buf), remaining(~0), maxTasks (size) {
     byte bytes = size * sizeof *tasks;
     memset(tasks, 0xFF, bytes);
 }
@@ -1001,15 +1197,19 @@ char Scheduler::poll() {
             if (tasks[i] < lowest)
                 lowest = tasks[i];
         }
-        if (lowest != ~0) {
+        if (lowest != ~0U) {
             for (byte i = 0; i < maxTasks; ++i) {
-                if(tasks[i] != ~0) {
+                if(tasks[i] != ~0U) {
                     tasks[i] -= lowest;
                 }
             }
+        } else {
+            // must turn off timer or it might overflow if its poll-method
+            // is not called within 5535 ms, i.e. if no tasks are scheduled
+            ms100.set(0);
         }
         remaining = lowest;
-    } else if (remaining == ~0) //remaining == ~0 means nothing running
+    } else if (remaining == ~0U) //remaining == ~0 means nothing running
         return -2;
     else if (ms100.poll(100))
         --remaining;
@@ -1017,7 +1217,7 @@ char Scheduler::poll() {
 }
 
 char Scheduler::pollWaiting() {
-    if(remaining == ~0)  // Nothing running!
+    if(remaining == ~0U)  // Nothing running!
         return -2;
     // first wait until the remaining time we need to wait is less than 0.1s
     while (remaining > 0) {
@@ -1038,7 +1238,7 @@ void Scheduler::timer(byte task, word tenths) {
     if (tenths < remaining) {
         word diff = remaining - tenths;
         for (byte i = 0; i < maxTasks; ++i)
-            if (tasks[i] != ~0)
+            if (tasks[i] != ~0U)
                 tasks[i] += diff;
         remaining = tenths;
     }
@@ -1088,9 +1288,9 @@ void InputParser::poll() {
         buffer[fill++] = ch;
         return;
     }
-    if (hexmode && ('0' <= ch && ch <= '9' ||
-                    'A' <= ch && ch <= 'F' ||
-                    'a' <= ch && ch <= 'f')) {
+    if (hexmode && (('0' <= ch && ch <= '9') ||
+                    ('A' <= ch && ch <= 'F') ||
+                    ('a' <= ch && ch <= 'f'))) {
         if (!hasvalue)
             value = 0;
         if (ch > '9')

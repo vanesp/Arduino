@@ -1,10 +1,11 @@
-// LiquidCrystal library, extended for use over I2C with the LCD Plug
 // 2009-09-23 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
-
-// see http://news.jeelabs.org/2009/09/26/generalized-liquidcrystal-library/
 
 #ifndef LiquidCrystal_h
 #define LiquidCrystal_h
+
+/// @file
+/// LiquidCrystal library, extended for use over I2C with the LCD Plug.
+/// See http://jeelabs.org/2009/09/26/generalized-liquidcrystal-library/
 
 #include <inttypes.h>
 #include <Print.h>
@@ -48,9 +49,10 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-// this class defines all the basic functionality needed to drive an LCD display
-// it is an incomplete (abstract) base class, which needs to be extended for use
-// see the LiquidCrystal and LiquidCrystalI2C classes for two usable versions
+/// Base class for different types of interfaces to character LCD's.
+/// This class defines the basic functionality needed to drive an LCD display.
+/// It is an incomplete (abstract) base class, which needs to be extended.
+/// See the LiquidCrystal and LiquidCrystalI2C classes for two usable versions.
 
 class LiquidCrystalBase : public Print {
 public:
@@ -90,10 +92,11 @@ protected:
   byte _numlines,_currline;
 };
 
-// This class can be used to create an object with drives an LCD through many
-// different I/O pins, connected to the display in parallel - it is equivalent
-// to the LiquidCrystal class defined in the Arduino, but has be adjusted to
-// work with the above LiquidCrystalBase instead.
+/// Interface to character LCD's connected via 4 to 8 I/O pins.
+/// This class can be used to create an object with drives an LCD through many
+/// different I/O pins, connected to the display in parallel - it is equivalent
+/// to the LiquidCrystal class defined in the Arduino, but has be adjusted to
+/// work with the above LiquidCrystalBase instead.
 
 class LiquidCrystal : public LiquidCrystalBase {
 public:
@@ -122,9 +125,10 @@ public:
   byte _data_pins[8];
 };
 
-// This class allows driving an LCD connected via I2C using an LCD Plug, which
-// is in turn based on an MCP23008 I2C I/O expander chip and some other parts.
-// The available functions include all those of the LiquidCrystal class.
+/// Interface to character LCD's connected via 2 I/O pins using software I2C.
+/// This class allows driving an LCD connected via I2C using an LCD Plug, which
+/// is in turn based on an MCP23008 I2C I/O expander chip and some other parts.
+/// The available functions include all those of the LiquidCrystal class.
 
 class LiquidCrystalI2C : public LiquidCrystalBase {
   DeviceI2C device;

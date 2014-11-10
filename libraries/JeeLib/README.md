@@ -1,9 +1,10 @@
-Work in progress - see <http://forum.jeelabs.net/node/457>
+**JeeLib** is an Arduino IDE library for [JeeNodes][1] (made by [JeeLabs][2])  
+and for compatible devices, with drivers for its wireless radio module,  
+its "JeePort" interfaces, and a range of add-on "JeePlug" interfaces.
 
-You can download this project in either
-[zip](https://github.com/jcw/jeelib/zipball/master) or
-[tar](https://github.com/jcw/jeelib/tarball/master) formats.
+The home page for this library is at <http://jeelabs.net/projects/jeelib/wiki>.
 
-Unpack the archive and rename the result to `JeeLib`.  
-Put it in the `libraries` folder in your Arduino sketches area.  
-Restart the Arduino IDE to make sure it sees the new files.
+License: MIT
+
+[1]: http://jeenode.com/
+[2]: http://jeelabs.org/

@@ -1,5 +1,6 @@
-// ATtiny85 measurement of peak-to-peak current at 50 Hz, w/ moving average.
-// 2011-10-06 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
+/// @dir tiny50hz
+/// ATtiny85 measurement of peak-to-peak current at 50 Hz, w/ moving average.
+// 2011-10-06 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 //
 // Note that this "sketch" is not for the ATmega328 but for the ATtiny84/85, 
 // see http://jeelabs.org/2011/10/10/ac-current-detection-works/
@@ -146,9 +147,7 @@ void loop () {
   payload.last = vmax - vmin;
   bitClear(PRR, PRUSI); // enable USI h/w
   rf12_sleep(RF12_WAKEUP);
-  while (!rf12_canSend())
-    rf12_recvDone();
-  rf12_sendStart(0, &payload, sizeof payload);
+  rf12_sendNow(0, &payload, sizeof payload);
   rf12_sendWait(1);
   rf12_sleep(RF12_SLEEP);
   bitSet(PRR, PRUSI); // disable USI h/w

@@ -1,5 +1,6 @@
-// Polls a number of "pollee" nodes as fast as possible to get data from them.
-// 2011-11-23 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
+/// @dir poller
+/// Polls a number of "pollee" nodes as fast as possible to get data from them.
+// 2011-11-23 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 //
 // Warning: this test will flood the radio band so nothing else gets through!
 //
@@ -28,11 +29,8 @@ void loop () {
   // switch to next node
   if (++nextId > NUM_NODES)
     nextId = 1;
-  // wait until we can send a packet
-  while (!rf12_canSend())
-    rf12_recvDone();
   // send an empty packet to one specific pollee
-  rf12_sendStart(RF12_HDR_ACK | RF12_HDR_DST | nextId, 0, 0);
+  rf12_sendNow(RF12_HDR_ACK | RF12_HDR_DST | nextId, 0, 0);
   // wait up to 10 milliseconds for a reply
   timer.set(10);
   while (!timer.poll())

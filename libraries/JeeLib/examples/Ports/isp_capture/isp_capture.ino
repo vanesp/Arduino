@@ -1,6 +1,8 @@
-// Variant of isp_flash which supports the Flash Board with on-board EEPROM
+/// @dir isp_capture
+/// Variant of isp_flash which supports the Flash Board with on-board EEPROM.
+
 // Originally derived from http://arduino.cc/en/Tutorial/ArduinoISP
-// see http://news.jeelabs.org/2010/04/24/isp-plug/
+// see http://jeelabs.org/2010/04/24/isp-plug/
 
 // This is an STK500-/AVRISP-compatible programmer with a twist: when used with
 // the Flash Board which has EEPROM memory on board, a copy of all programming
@@ -608,7 +610,7 @@ static int avrisp() {
 
 static void showInfo () {
     // restore parameters from page 0
-    mem.load(0, &param, 0, sizeof param);
+    mem.load(0, 0, &param, sizeof param);
     // report saved info for debugging
     Serial.print("ISP bytes: ");
     Serial.println(param.programsize);
@@ -653,7 +655,7 @@ void loop(void) {
     if (doneTimer.poll()) {
         recordFlush();
         param.programsize = stream.position(1); // save parameter info in page 0
-        mem.save(0, &param, 0, sizeof param);
+        mem.save(0, 0, &param, sizeof param);
 
         setLed(1);
         delay(100);

@@ -1,4 +1,5 @@
-// New version of the Room Node, derived from rooms.pde
+/// @dir roomNode
+/// New version of the Room Node (derived from rooms.pde).
 // 2010-10-19 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 // see http://jeelabs.org/2010/10/20/new-roomnode-code/
@@ -16,7 +17,8 @@
 #define SERIAL  0   // set to 1 to also report readings on the serial port
 #define DEBUG   0   // set to 1 to display each loop() run and PIR trigger
 
-#define SHT11_PORT  1   // defined if SHT11 is connected to a port
+// #define SHT11_PORT  1   // defined if SHT11 is connected to a port
+#define HYT131_PORT 1   // defined if HYT131 is connected to a port
 #define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
 #define PIR_PORT    4   // defined if PIR is connected to a port's DIO pin
 
@@ -59,6 +61,11 @@ struct {
     SHT11 sht11 (SHT11_PORT);
 #endif
 
+#if HYT131_PORT
+    PortI2C hyti2cport (HYT131_PORT);
+    HYT131 hyt131 (hyti2cport);
+#endif
+
 #if LDR_PORT
     Port ldr (LDR_PORT);
 #endif
@@ -66,8 +73,9 @@ struct {
 #if PIR_PORT
     #define PIR_HOLD_TIME   30  // hold PIR value this many seconds after change
     #define PIR_PULLUP      1   // set to one to pull-up the PIR input pin
-    #define PIR_FLIP        0   // 0 or 1, to match PIR reporting high or low
+    #define PIR_INVERTED    1   // 0 or 1, to match PIR reporting high or low
     
+    /// Interface to a Passive Infrared motion sensor.
     class PIR : public Port {
         volatile byte value, changed;
         volatile uint32_t lastOn;
@@ -77,8 +85,8 @@ struct {
 
         // this code is called from the pin-change interrupt handler
         void poll() {
-            // see http://talk.jeelabs.net/topic/811#post-4734 for PIR_FLIP
-            byte pin = digiRead() ^ PIR_FLIP;
+            // see http://talk.jeelabs.net/topic/811#post-4734 for PIR_INVERTED
+            byte pin = digiRead() ^ PIR_INVERTED;
             // if the pin just went on, then set the changed flag to report it
             if (pin) {
                 if (!state())
@@ -94,7 +102,7 @@ struct {
             if (lastOn > 0)
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                     if (millis() - lastOn < 1000 * PIR_HOLD_TIME)
-                        f = 1 ^ PIR_FLIP;
+                        f = 1;
                 }
             return f;
         }
@@ -162,6 +170,12 @@ static void doMeasure() {
         payload.humi = smoothedAverage(payload.humi, humi, firstTime);
         payload.temp = smoothedAverage(payload.temp, temp, firstTime);
     #endif
+    #if HYT131_PORT
+        int humi, temp;
+        hyt131.reading(temp, humi);
+        payload.humi = smoothedAverage(payload.humi, humi/10, firstTime);
+        payload.temp = smoothedAverage(payload.temp, temp, firstTime);
+    #endif
     #if LDR_PORT
         ldr.digiWrite2(1);  // enable AIO pull-up
         byte light = ~ ldr.anaRead() >> 2;
@@ -183,9 +197,8 @@ static void serialFlush () {
 // periodic report, i.e. send out a packet and optionally report on serial port
 static void doReport() {
     rf12_sleep(RF12_WAKEUP);
-    while (!rf12_canSend())
-        rf12_recvDone();
-    rf12_sendStart(0, &payload, sizeof payload, RADIO_SYNC_MODE);
+    rf12_sendNow(0, &payload, sizeof payload);
+    rf12_sendWait(RADIO_SYNC_MODE);
     rf12_sleep(RF12_SLEEP);
 
     #if SERIAL
@@ -214,9 +227,8 @@ static void doTrigger() {
 
     for (byte i = 0; i < RETRY_LIMIT; ++i) {
         rf12_sleep(RF12_WAKEUP);
-        while (!rf12_canSend())
-            rf12_recvDone();
-        rf12_sendStart(RF12_HDR_ACK, &payload, sizeof payload, RADIO_SYNC_MODE);
+        rf12_sendNow(RF12_HDR_ACK, &payload, sizeof payload);
+        rf12_sendWait(RADIO_SYNC_MODE);
         byte acked = waitForAck();
         rf12_sleep(RF12_SLEEP);
 

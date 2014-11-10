@@ -1,4 +1,6 @@
-// Ports demo, reads out a BMP085 sensor connected via I2C
+/// @dir bmp085demo
+/// Ports demo, reads out a BMP085 sensor connected via I2C.
+/// @see http://jeelabs.org/2010/06/30/going-for-gold-with-the-bmp085/
 // 2009-02-17 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
 
 // 2010-05-22: added support for all resolution modes
@@ -6,8 +8,8 @@
 // 2010-06-17: add power saving logic, should reduce consumption by over 90%
 // 2010-06-24: improved power savings, several "hot spots" optimized
 
-// see http://news.jeelabs.org/2010/06/20/battery-savings-for-the-pressure-plug/
-// see http://news.jeelabs.org/2010/06/30/going-for-gold-with-the-bmp085/
+// see http://jeelabs.org/2010/06/20/battery-savings-for-the-pressure-plug/
+// see http://jeelabs.org/2010/06/30/going-for-gold-with-the-bmp085/
 
 #include <JeeLib.h>
 #include <PortsBMP085.h>
@@ -114,8 +116,6 @@ void loop() {
         lowPower(SLEEP_MODE_IDLE);
     }
         
-    while (!rf12_canSend())
-        rf12_recvDone();
-    
-    rf12_sendStart(0, &payload, sizeof payload, 1); // sync mode!
+    rf12_sendNow(0, &payload, sizeof payload);
+    rf12_sendWait(1); // sync mode!
 }
