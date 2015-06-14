@@ -10,14 +10,25 @@
   Sensor 2 to +5V
   When water = conductive = +ve voltage to base = collector goes to ground = LOW on waterPin
 
+  Additionally, a DS18S20 temperature sensor is connected
+  (flat towards you, pins 1,2,3 from left to right)
+  pin 1 to ground
+  pin 2 to digital ip (port 10) and via 4K7 resistor to +5V
+  pin 3 to VCC (+5V)
+  
+  
+
   modified 7 november 2014
   by Peter van Es
  */
 
+#include <OneWire.h>
+
 // constants won't change. They're used here to 
 // set pin numbers:
-const int waterPin = 4;    // the number of the water pin (on D on P1 = PD4)
-const int ledPin = 6;      // the number of the LED pin (D on P3 is PD6)
+const int waterPin = 3;    // the number of the water pin
+const int ledPin = 9;      // the number of the LED pin
+OneWire  ds(10);           // on pin 10 with 4K7 to vcc
 
 // Variables will change:
 int ledState = LOW;         // the current state of the output pin
@@ -29,23 +40,14 @@ int lastwaterState = LOW;   // the previous reading from the input pin
 long lastDebounceTime = 0;  // the last time the output pin was toggled
 long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
-static void setLED (byte pin, byte on) {
-  if (on) {
-    // led is on, output mode, pulled low
-    digitalWrite(pin, 0);
-    pinMode(pin, OUTPUT);
-  } else {
-    // led = off, input mode with pul-up resistor
-    pinMode (pin, INPUT);
-    digitalWrite (pin, 1);
-  }
-}
-
 void setup() {
   pinMode(waterPin, INPUT);
+  pinMode(ledPin, OUTPUT);
 
   // set initial LED state
-  setLED(ledPin, ledState);
+  digitalWrite(ledPin, ledState);
+  // debugging
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -82,10 +84,9 @@ void loop() {
   }
   
   // set the LED:
-  setLED(ledPin, ledState);
+  digitalWrite(ledPin, ledState);
 
   // save the reading.  Next time through the loop,
   // it'll be the lastwaterState:
   lastwaterState = reading;
 }
-
