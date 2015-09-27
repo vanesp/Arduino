@@ -1,1 +1,13 @@
 Arduino code for Jeenode inspired Sensor
+
+Code for the Receiver in the Portux Controller: GenericRcvIT
+Code for the Nodo Arduino Small: Nodo_Due
+Code for the JeeNodes:
+
+* roomNodePve
+* roomNodePvEHYT131
+* waterNode
+
+Note: in this version the temperature sensors embedded in the controller
+have new ID no's. See GenericRcvIT
+

@@ -1,7 +1,7 @@
 
 // Receiver for all RF12 data... the received data is not interpreted, just sent out
 // all interpretation is done in the code on the Linux box...
-// 2012-12-16 <vanes.peter@gmail.com>
+// 2015-09-27 <vanes.peter@gmail.com>
 // http://opensource.org/licenses/mit-license.php
 
 // LaCrosse IT+ Sensor readings added with thanks to
@@ -9,6 +9,12 @@
 // IT+ decoding was possible thank to
 //   - The great job done by fred, see here: http://fredboboss.free.fr/tx29/tx29_1.php?lang=en
 //   - And stuff found here: http://forum.jeelabs.net/node/110
+
+// 2015-09-027
+// New version... assign high end, random numbers to the internal and (optional) external temperature sensors
+// to prevent conflicts with IT+ sensors added over which we have no control in channel numbers
+// Ensure these numbers correspond correctly in the database
+// We've used 243 instead of 2, and 247 instead of 3
 
 #include <JeeLib.h>
 #include <Arduino.h>
@@ -30,7 +36,7 @@ DallasTemperature sensors(&oneWire);   // Pass our oneWire reference to Dallas T
 // By using direct addressing its possible to make sure that as you add temperature sensors
 // the temperature sensor to variable mapping will not change.
 
-int idSensor[] = { 2, 3 };              // map id of temp sensor in database
+int idSensor[] = { 243, 247 };              // map id of temp sensor in database
 #define NRSENSORS  2                    // number of sensors
 DeviceAddress Thermometer[NRSENSORS];   // array to hold device addresses
 
