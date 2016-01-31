@@ -1,4 +1,4 @@
-hy/// @dir p1scanner
+/// @dir p1scanner
 /// Parse P1 data from smart meter and send as compressed packet over RF12.
 /// @see http://jeelabs.org/2013/01/02/encoding-p1-data/
 // 2012-12-31 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
