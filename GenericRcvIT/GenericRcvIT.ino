@@ -50,9 +50,9 @@ DeviceAddress Thermometer[NRSENSORS];   // array to hold device addresses
 
 // IT+ Decoding debug flags
 // #define ITPLUS_DEBUG_FRAME
-// #define ITPLUS_DEBUG
+#define ITPLUS_DEBUG
 // #define DEBUG_CRC
-// #define RF12_DEBUG
+#define RF12_DEBUG
 
 #define SENSORS_RX_TIMEOUT 5        // in minutes?
 #define ITPLUS_MAX_SENSORS  10

@@ -13,8 +13,11 @@
 // The Studeerkamer Jeenode has the Roomboard connected to Port 2 and 3 and uses the SHT11, Roomnode id = 2
 // The Woonkamer Jeenode has the Roomboard connected to Port 1 (HYT131) and 4, Roomnode id = 3
 
-#define STUDEER 1
-// #define WOON 1
+// The Studeerkamer Jeenode is now in the Woonkamer (Hedrick de Keyser)
+// The Woonkamer Jeenode is now in the Slaapkamer 
+
+// #define STUDEER 1
+#define WOON 1
 
 #include <JeeLib.h>
 #include <PortsSHT11.h>
