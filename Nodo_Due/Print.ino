@@ -445,7 +445,7 @@ void PrintWelcome(void)
  /**********************************************************************************************\
  * Print een string uit PROGMEM
  \*********************************************************************************************/
-void PrintText(prog_char* text)
+void PrintText(const char* text)
   {
   byte x=0;
   char buffer[60];

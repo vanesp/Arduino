@@ -281,7 +281,7 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
  * Deze functie haalt een tekst op uit PROGMEM en geeft als string terug
  * BUILD 01, 09-01-2010, P.K.Tonkes@gmail.com
  \*********************************************************************************************/
- char* Text(prog_char* text)
+ char* Text(const char* text)
   {
   byte x=0;
   static char buffer[40];

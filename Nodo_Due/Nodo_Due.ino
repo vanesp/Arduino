@@ -1,4 +1,4 @@
-
+/* Note: Version used by Peter van Es for Nodo Arduino Small and automation project!
 
  /****************************************************************************************************************************\
  * Arduino project "Nodo Due" © Copyright 2010 Paul Tonkes
@@ -36,7 +36,7 @@
                                   // Patch: Herstel van bugs zonder (ingrijpende) functionele veranderingen.
 
 
-#include "pins_arduino.h"
+// #include "pins_arduino.h"
 #include <EEPROM.h>
 #include <Wire.h>
 #include <avr/pgmspace.h>
@@ -46,21 +46,21 @@
 \**************************************************************************************************************************/
 
 // strings met vaste tekst naar PROGMEM om hiermee RAM-geheugen te sparen.
-prog_char PROGMEM Text_01[] = "Nodo-Due Domotica controller (c) Copyright 2011 P.K.Tonkes.";
-prog_char PROGMEM Text_02[] = "Licensed under GNU General Public License.";
-prog_char PROGMEM Text_03[] = "Line=";
-prog_char PROGMEM Text_04[] = "SunMonThuWedThuFriSat";
-prog_char PROGMEM Text_06[] = "Error";
-prog_char PROGMEM Text_07[] = "RawSignal=";
-prog_char PROGMEM Text_08[] = "Queue=Out, ";
-prog_char PROGMEM Text_09[] = "Queue=In, ";
-prog_char PROGMEM Text_10[] = "TimeStamp=";
-prog_char PROGMEM Text_11[] = "";  // PvE: was: "Direction="
-prog_char PROGMEM Text_12[] = "";  // PvE: was: "Source="
-prog_char PROGMEM Text_13[] = "ThisUnit=";
-prog_char PROGMEM Text_14[] = "";  // PvE: was "Event="
-prog_char PROGMEM Text_15[] = "Version=";
-prog_char PROGMEM Text_16[] = "Action=";
+const char Text_01[] PROGMEM = "Nodo-Due Domotica controller (c) Copyright 2011 P.K.Tonkes.";
+const char Text_02[] PROGMEM = "Licensed under GNU General Public License.";
+const char Text_03[] PROGMEM = "Line=";
+const char Text_04[] PROGMEM = "SunMonThuWedThuFriSat";
+const char Text_06[] PROGMEM = "Error";
+const char Text_07[] PROGMEM = "RawSignal=";
+const char Text_08[] PROGMEM = "Queue=Out, ";
+const char Text_09[] PROGMEM = "Queue=In, ";
+const char Text_10[] PROGMEM = "TimeStamp=";
+const char Text_11[] PROGMEM = "Direction=";  // PvE: was: "Direction="
+const char Text_12[] PROGMEM = "Source=";  // PvE: was: "Source="
+const char Text_13[] PROGMEM = "ThisUnit=";
+const char Text_14[] PROGMEM = "Event=";  // PvE: was "Event="
+const char Text_15[] PROGMEM = "Version=";
+const char Text_16[] PROGMEM = "Action=";
 
 #define RANGE_VALUE 30 // alle codes kleiner of gelijk aan deze waarde zijn vaste Nodo waarden.
 #define RANGE_EVENT 81 // alle codes groter of gelijk aan deze waarde zijn een event.
@@ -169,111 +169,111 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define CMD_USER_EVENT 100// deze moet altijd op 100 blijven anders opnieuw leren aan universele afstandsbediening!
 #define CMD_DLS_EVENT 101
 
-prog_char PROGMEM Cmd_0[]="Off";
-prog_char PROGMEM Cmd_1[]="Command";
-prog_char PROGMEM Cmd_2[]="Parameter";
-prog_char PROGMEM Cmd_3[]="I";   // PvE was: "IR";
-prog_char PROGMEM Cmd_4[]="IR&RF";
-prog_char PROGMEM Cmd_5[]="R";  // PvE was: "RF";
-prog_char PROGMEM Cmd_6[]="Serial";
-prog_char PROGMEM Cmd_7[]="Wired";
-prog_char PROGMEM Cmd_8[]="EventList";
-prog_char PROGMEM Cmd_9[]="System";
-prog_char PROGMEM Cmd_10[]="Timers";
-prog_char PROGMEM Cmd_11[]="Variables";
-prog_char PROGMEM Cmd_12[]="Clock";
-prog_char PROGMEM Cmd_13[]="Trace";
-prog_char PROGMEM Cmd_14[]="Tag";
-prog_char PROGMEM Cmd_15[]="Timestamp";
-prog_char PROGMEM Cmd_16[]="Direction";
-prog_char PROGMEM Cmd_17[]="I";  // PvE was: "Input";
-prog_char PROGMEM Cmd_18[]="O";  // PvE was: "Output";
-prog_char PROGMEM Cmd_19[]="Internal";
-prog_char PROGMEM Cmd_20[]="Busy";
-prog_char PROGMEM Cmd_21[]="Source";
-prog_char PROGMEM Cmd_22[]="RF2IR";
-prog_char PROGMEM Cmd_23[]="IR2RF";
-prog_char PROGMEM Cmd_24[]="All";
-prog_char PROGMEM Cmd_25[]="Output_RAW";
-prog_char PROGMEM Cmd_26[]="Nesting";
-prog_char PROGMEM Cmd_27[]="Queue";
-prog_char PROGMEM Cmd_28[]="On";
-prog_char PROGMEM Cmd_29[]=""; // reserve
-prog_char PROGMEM Cmd_30[]=""; // reserve
-prog_char PROGMEM Cmd_31[]="ReceiveSettings";
-prog_char PROGMEM Cmd_32[]="BreakOnVarEqu";
-prog_char PROGMEM Cmd_33[]="BreakOnVarLess";
-prog_char PROGMEM Cmd_34[]="BreakOnVarMore";
-prog_char PROGMEM Cmd_35[]="BreakOnVarNEqu";
-prog_char PROGMEM Cmd_36[]="ClockSetDate";
-prog_char PROGMEM Cmd_37[]="ClockSetYear";
-prog_char PROGMEM Cmd_38[]="ClockSetTime";
-prog_char PROGMEM Cmd_39[]="ClockSetDOW";
-prog_char PROGMEM Cmd_40[]="Delay";
-prog_char PROGMEM Cmd_41[]="Divert";
-prog_char PROGMEM Cmd_42[]="EventlistErase";
-prog_char PROGMEM Cmd_43[]="EventlistShow";
-prog_char PROGMEM Cmd_44[]="EventlistWrite";
-prog_char PROGMEM Cmd_45[]="TransmitSettings";
-prog_char PROGMEM Cmd_46[]="RawsignalGet";
-prog_char PROGMEM Cmd_47[]="RawsignalPut";
-prog_char PROGMEM Cmd_48[]="Reset";
-prog_char PROGMEM Cmd_49[]="SendKAKU";
-prog_char PROGMEM Cmd_50[]="SendNewKAKU";
-prog_char PROGMEM Cmd_51[]="SendSignal";
-prog_char PROGMEM Cmd_52[]="Simulate";
-prog_char PROGMEM Cmd_53[]="SimulateDay";
-prog_char PROGMEM Cmd_54[]="Sound";
-prog_char PROGMEM Cmd_55[]="Status";
-prog_char PROGMEM Cmd_56[]="";
-prog_char PROGMEM Cmd_57[]="TimerRandom";
-prog_char PROGMEM Cmd_58[]="TimerSetSec";
-prog_char PROGMEM Cmd_59[]="TimerSetMin";
-prog_char PROGMEM Cmd_60[]="Display";
-prog_char PROGMEM Cmd_61[]="Unit";
-prog_char PROGMEM Cmd_62[]="WaitBusy";
-prog_char PROGMEM Cmd_63[]="VariableDec";
-prog_char PROGMEM Cmd_64[]="VariableInc";
-prog_char PROGMEM Cmd_65[]="VariableSet";
-prog_char PROGMEM Cmd_66[]="VariableVariable";
-prog_char PROGMEM Cmd_67[]="VariableWiredAnalog";
-prog_char PROGMEM Cmd_68[]="WaitFreeRF";
-prog_char PROGMEM Cmd_69[]="WiredAnalog";
-prog_char PROGMEM Cmd_70[]="WiredOut";
-prog_char PROGMEM Cmd_71[]="WiredPullup";
-prog_char PROGMEM Cmd_72[]="WiredSmittTrigger";
-prog_char PROGMEM Cmd_73[]="WiredThreshold";
-prog_char PROGMEM Cmd_74[]="SendUserEvent";
-prog_char PROGMEM Cmd_75[]="RawSignalCopy";
-prog_char PROGMEM Cmd_76[]="WildCard";
-prog_char PROGMEM Cmd_77[]="SendBusy";
-prog_char PROGMEM Cmd_78[]="SendVarUserEvent";
-prog_char PROGMEM Cmd_79[]="WiredRange";
-prog_char PROGMEM Cmd_80[]=""; // reserve
-prog_char PROGMEM Cmd_81[]="Boot";
-prog_char PROGMEM Cmd_82[]="ClockDaylight";
-prog_char PROGMEM Cmd_83[]="ClockAll";
-prog_char PROGMEM Cmd_84[]="ClockSun";
-prog_char PROGMEM Cmd_85[]="ClockMon";
-prog_char PROGMEM Cmd_86[]="ClockTue";
-prog_char PROGMEM Cmd_87[]="ClockWed";
-prog_char PROGMEM Cmd_88[]="ClockThu";
-prog_char PROGMEM Cmd_89[]="ClockFri";
-prog_char PROGMEM Cmd_90[]="ClockSat";
-prog_char PROGMEM Cmd_91[]=""; // reserve
-prog_char PROGMEM Cmd_92[]="KAKU";
-prog_char PROGMEM Cmd_93[]="NewKAKU";
-prog_char PROGMEM Cmd_94[]="Timer";
-prog_char PROGMEM Cmd_95[]="WiredIn";
-prog_char PROGMEM Cmd_96[]="Variable";
-prog_char PROGMEM Cmd_97[]="Busy";
-prog_char PROGMEM Cmd_98[]=""; // reserve
-prog_char PROGMEM Cmd_99[]="Error"; // deze moet altijd op  blijven
-prog_char PROGMEM Cmd_100[]="UserEvent"; // deze moet altijd op 100 blijven anders opnieuw leren aan universele afstandsbediening!
-prog_char PROGMEM Cmd_101[]="DaylightSaving";
+const char Cmd_0[] PROGMEM ="Off";
+const char Cmd_1[] PROGMEM ="Command";
+const char Cmd_2[] PROGMEM ="Parameter";
+const char Cmd_3[] PROGMEM ="I";   // PvE was: "IR";
+const char Cmd_4[] PROGMEM ="IR&RF";
+const char Cmd_5[] PROGMEM ="R";  // PvE was: "RF";
+const char Cmd_6[] PROGMEM ="Serial";
+const char Cmd_7[] PROGMEM ="Wired";
+const char Cmd_8[] PROGMEM ="EventList";
+const char Cmd_9[] PROGMEM ="System";
+const char Cmd_10[] PROGMEM ="Timers";
+const char Cmd_11[] PROGMEM ="Variables";
+const char Cmd_12[] PROGMEM ="Clock";
+const char Cmd_13[] PROGMEM ="Trace";
+const char Cmd_14[] PROGMEM ="Tag";
+const char Cmd_15[] PROGMEM ="Timestamp";
+const char Cmd_16[] PROGMEM ="Direction";
+const char Cmd_17[] PROGMEM ="I";  // PvE was: "Input";
+const char Cmd_18[] PROGMEM ="O";  // PvE was: "Output";
+const char Cmd_19[] PROGMEM ="Internal";
+const char Cmd_20[] PROGMEM ="Busy";
+const char Cmd_21[] PROGMEM ="Source";
+const char Cmd_22[] PROGMEM ="RF2IR";
+const char Cmd_23[] PROGMEM ="IR2RF";
+const char Cmd_24[] PROGMEM ="All";
+const char Cmd_25[] PROGMEM ="Output_RAW";
+const char Cmd_26[] PROGMEM ="Nesting";
+const char Cmd_27[] PROGMEM ="Queue";
+const char Cmd_28[] PROGMEM ="On";
+const char Cmd_29[] PROGMEM =""; // reserve
+const char Cmd_30[] PROGMEM =""; // reserve
+const char Cmd_31[] PROGMEM ="ReceiveSettings";
+const char Cmd_32[] PROGMEM ="BreakOnVarEqu";
+const char Cmd_33[] PROGMEM ="BreakOnVarLess";
+const char Cmd_34[] PROGMEM ="BreakOnVarMore";
+const char Cmd_35[] PROGMEM ="BreakOnVarNEqu";
+const char Cmd_36[] PROGMEM ="ClockSetDate";
+const char Cmd_37[] PROGMEM ="ClockSetYear";
+const char Cmd_38[] PROGMEM ="ClockSetTime";
+const char Cmd_39[] PROGMEM ="ClockSetDOW";
+const char Cmd_40[] PROGMEM ="Delay";
+const char Cmd_41[] PROGMEM ="Divert";
+const char Cmd_42[] PROGMEM ="EventlistErase";
+const char Cmd_43[] PROGMEM ="EventlistShow";
+const char Cmd_44[] PROGMEM ="EventlistWrite";
+const char Cmd_45[] PROGMEM ="TransmitSettings";
+const char Cmd_46[] PROGMEM ="RawsignalGet";
+const char Cmd_47[] PROGMEM ="RawsignalPut";
+const char Cmd_48[] PROGMEM ="Reset";
+const char Cmd_49[] PROGMEM ="SendKAKU";
+const char Cmd_50[] PROGMEM ="SendNewKAKU";
+const char Cmd_51[] PROGMEM ="SendSignal";
+const char Cmd_52[] PROGMEM ="Simulate";
+const char Cmd_53[] PROGMEM ="SimulateDay";
+const char Cmd_54[] PROGMEM ="Sound";
+const char Cmd_55[] PROGMEM ="Status";
+const char Cmd_56[] PROGMEM ="";
+const char Cmd_57[] PROGMEM ="TimerRandom";
+const char Cmd_58[] PROGMEM ="TimerSetSec";
+const char Cmd_59[] PROGMEM ="TimerSetMin";
+const char Cmd_60[] PROGMEM ="Display";
+const char Cmd_61[] PROGMEM ="Unit";
+const char Cmd_62[] PROGMEM ="WaitBusy";
+const char Cmd_63[] PROGMEM ="VariableDec";
+const char Cmd_64[] PROGMEM ="VariableInc";
+const char Cmd_65[] PROGMEM ="VariableSet";
+const char Cmd_66[] PROGMEM ="VariableVariable";
+const char Cmd_67[] PROGMEM ="VariableWiredAnalog";
+const char Cmd_68[] PROGMEM ="WaitFreeRF";
+const char Cmd_69[] PROGMEM ="WiredAnalog";
+const char Cmd_70[] PROGMEM ="WiredOut";
+const char Cmd_71[] PROGMEM ="WiredPullup";
+const char Cmd_72[] PROGMEM ="WiredSmittTrigger";
+const char Cmd_73[] PROGMEM ="WiredThreshold";
+const char Cmd_74[] PROGMEM ="SendUserEvent";
+const char Cmd_75[] PROGMEM ="RawSignalCopy";
+const char Cmd_76[] PROGMEM ="WildCard";
+const char Cmd_77[] PROGMEM ="SendBusy";
+const char Cmd_78[] PROGMEM ="SendVarUserEvent";
+const char Cmd_79[] PROGMEM ="WiredRange";
+const char Cmd_80[] PROGMEM =""; // reserve
+const char Cmd_81[] PROGMEM ="Boot";
+const char Cmd_82[] PROGMEM ="ClockDaylight";
+const char Cmd_83[] PROGMEM ="ClockAll";
+const char Cmd_84[] PROGMEM ="ClockSun";
+const char Cmd_85[] PROGMEM ="ClockMon";
+const char Cmd_86[] PROGMEM ="ClockTue";
+const char Cmd_87[] PROGMEM ="ClockWed";
+const char Cmd_88[] PROGMEM ="ClockThu";
+const char Cmd_89[] PROGMEM ="ClockFri";
+const char Cmd_90[] PROGMEM ="ClockSat";
+const char Cmd_91[] PROGMEM =""; // reserve
+const char Cmd_92[] PROGMEM ="KAKU";
+const char Cmd_93[] PROGMEM ="NewKAKU";
+const char Cmd_94[] PROGMEM ="Timer";
+const char Cmd_95[] PROGMEM ="WiredIn";
+const char Cmd_96[] PROGMEM ="Variable";
+const char Cmd_97[] PROGMEM ="Busy";
+const char Cmd_98[] PROGMEM =""; // reserve
+const char Cmd_99[] PROGMEM ="Error"; // deze moet altijd op 99 blijven
+const char Cmd_100[] PROGMEM ="UserEvent"; // deze moet altijd op 100 blijven anders opnieuw leren aan universele afstandsbediening!
+const char Cmd_101[] PROGMEM ="DaylightSaving";
 
 // tabel die refereert aan de commando strings
-PROGMEM const char *CommandText_tabel[]={
+const char* const CommandText_tabel[] PROGMEM ={
   Cmd_0 ,Cmd_1 ,Cmd_2 ,Cmd_3 ,Cmd_4 ,Cmd_5 ,Cmd_6 ,Cmd_7 ,Cmd_8 ,Cmd_9 ,
   Cmd_10,Cmd_11,Cmd_12,Cmd_13,Cmd_14,Cmd_15,Cmd_16,Cmd_17,Cmd_18,Cmd_19,
   Cmd_20,Cmd_21,Cmd_22,Cmd_23,Cmd_24,Cmd_25,Cmd_26,Cmd_27,Cmd_28,Cmd_29,
@@ -286,16 +286,16 @@ PROGMEM const char *CommandText_tabel[]={
   Cmd_90,Cmd_91,Cmd_92,Cmd_93,Cmd_94,Cmd_95,Cmd_96,Cmd_97,Cmd_98,Cmd_99,          
   Cmd_100,Cmd_101};          
 
-PROGMEM prog_uint16_t Sunrise[]={         
+const int Sunrise[] PROGMEM ={         
   528,525,516,503,487,467,446,424,401,378,355,333,313,295,279,268,261,259,263,271,283,297,312,329,
   345,367,377,394,411,428,446,464,481,498,512,522,528,527};
       
-PROGMEM prog_uint16_t Sunset[]={          
+const int Sunset[] PROGMEM ={          
   999,1010,1026,1044,1062,1081,1099,1117,1135,1152,1169,1186,1203,1219,1235,1248,1258,1263,1264,1259,
   1249,1235,1218,1198,1177,1154,1131,1107,1084,1062,1041,1023,1008,996,990,989,993,1004};
 
 // omschakeling zomertijd / wintertijd voor komende 10 jaar. één int bevat de omschakeldata in maart en oktober.
-PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,3127};
+const int DLSDate[] PROGMEM ={2831,2730,2528,3127,3026,2925,2730,2629,2528,3127};
 #define DLSBase 2010 // jaar van eerste element uit de array
 
 
