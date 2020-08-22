@@ -28,10 +28,10 @@ void PrintEvent(unsigned long Content, byte Port, byte Direction)
   // als ingesteld staat dat seriële input niet weergegeven moet worden en de poort was serieel, dan direct terug
   if(!(S.Display&DISPLAY_SERIAL) && Port==VALUE_SOURCE_SERIAL && Direction==VALUE_DIRECTION_INPUT)
     return;
-  
+
   // datum en tijd weergeven
   if(S.Display&DISPLAY_TIMESTAMP && Time.Day) // Time.Day=true want dan is er een RTC aanwezig.
-    {   
+    {
     if(S.Display&DISPLAY_TAG)
       PrintText(Text_10);
     PrintDateTime();
@@ -65,9 +65,9 @@ void PrintEvent(unsigned long Content, byte Port, byte Direction)
     if(Direction==VALUE_SOURCE_QUEUE)
       {
       PrintChar('-');
-      PrintValue(QueuePos+1);       
+      PrintValue(QueuePos+1);
       }
-    }    
+    }
 
   // geef de source van het event weer
   if(S.Display&DISPLAY_SOURCE && Port)
@@ -98,21 +98,21 @@ void PrintEvent(unsigned long Content, byte Port, byte Direction)
           Serial.print(cmd2str(CMD_UNIT));
           PrintChar('=');
           }
-      PrintValue((Content>>24)&0xf); 
+      PrintValue((Content>>24)&0xf);
       }
     }
-    
+
   if(first++)
     {
     PrintChar(',');
     PrintChar(' ');
     }
-    
+
   if(S.Display&DISPLAY_TAG)
     PrintText(Text_14);
   PrintEventCode(Content);
   PrintTerm();
-  }  
+  }
 
 
  /*********************************************************************************************\
@@ -131,7 +131,7 @@ void PrintRawSignal(void)
 
  /*********************************************************************************************\
  * Print een decimaal getal
- * Serial.Print neemt veel progmem in beslag. 
+ * Serial.Print neemt veel  in beslag.
  \*********************************************************************************************/
 void PrintValue(unsigned long x)
   {
@@ -139,13 +139,13 @@ void PrintValue(unsigned long x)
     Serial.print(x,DEC);
   else
     {
-    Serial.print("0x"); 
+    Serial.print("0x");
     Serial.print(x,HEX);
     }
   }
-  
+
  /*********************************************************************************************\
- * Print een lijn met het teken '*' 
+ * Print een lijn met het teken '*'
  \*********************************************************************************************/
 void PrintLine(void)
   {
@@ -155,8 +155,8 @@ void PrintLine(void)
 
 
  /*********************************************************************************************\
- * Serial.Print neemt veel progmem in beslag. 
- * Print het teken '0' 
+ * Serial.Print neemt veel  in beslag.
+ * Print het teken '0'
  \*********************************************************************************************/
 void PrintChar(byte S)
   {
@@ -176,24 +176,24 @@ void PrintChar(byte S)
 
 void PrintEventCode(unsigned long Code)
   {
-  byte P1,P2,Par2_b; 
+  byte P1,P2,Par2_b;
   boolean P2Z=true;     // vlag: true=Par2 als nul waarde afdrukken false=nulwaarde weglaten
-  
+
   byte Type     = (Code>>28)&0xf;
   byte Command  = (Code>>16)&0xff;
   byte Par1     = (Code>>8)&0xff;
   byte Par2     = (Code)&0xff;
 
-  PrintChar('('); 
+  PrintChar('(');
 
   if(Type==SIGNAL_TYPE_NEWKAKU)
     {
-    // Aan/Uit zit in bit 5 
+    // Aan/Uit zit in bit 5
     Serial.print(cmd2str(CMD_KAKU_NEW));
     PrintChar(' ');
     PrintValue(Code&0x0FFFFFEF);
-    PrintChar(',');   
-    Serial.print(cmd2str(((Code>>4)&0x1)?VALUE_ON:VALUE_OFF)); 
+    PrintChar(',');
+    Serial.print(cmd2str(((Code>>4)&0x1)?VALUE_ON:VALUE_OFF));
     }
 
   else if(Type==SIGNAL_TYPE_NODO || Type==SIGNAL_TYPE_KAKU)
@@ -208,13 +208,13 @@ void PrintEventCode(unsigned long Code)
         P2=P_TEXT;
         Par2_b=Par2;
         break;
-  
+
       case CMD_KAKU_NEW:
       case CMD_SEND_KAKU_NEW:
         P1=P_VALUE;
         P2=P_DIM;
         break;
-  
+
       // Par1 als waarde en par2 als tekst
       case CMD_DELAY:
       case CMD_WIRED_PULLUP:
@@ -223,13 +223,13 @@ void PrintEventCode(unsigned long Code)
         P1=P_VALUE;
         P2=P_TEXT;
         break;
-  
+
       // Par1 als tekst en par2 als tekst
       case CMD_COMMAND_WILDCARD:
         P1=P_TEXT;
         P2=P_TEXT;
         break;
-  
+
       // Par1 als tekst en par2 als getal
       case CMD_ERROR:
       case CMD_COPYSIGNAL:
@@ -238,7 +238,7 @@ void PrintEventCode(unsigned long Code)
         P1=P_TEXT;
         P2=P_VALUE;
         break;
-  
+
       // Par1 als tekst en par2 niet
       case CMD_DLS_EVENT:
       case CMD_BUSY:
@@ -248,7 +248,7 @@ void PrintEventCode(unsigned long Code)
         P1=P_TEXT;
         P2=P_NOT;
         break;
-  
+
       // Par1 als waarde en par2 niet
       case CMD_UNIT:
       case CMD_DIVERT:
@@ -257,21 +257,21 @@ void PrintEventCode(unsigned long Code)
         P1=P_VALUE;
         P2=P_NOT;
         break;
-  
+
       // Geen parameters
       case CMD_SEND_SIGNAL:
       case CMD_BOOT_EVENT:
         P1=P_NOT;
         P2=P_NOT;
         break;
-  
+
       // Par1 als waarde en par2 als waarde
       default:
         P1=P_VALUE;
-        P2=P_VALUE;    
+        P2=P_VALUE;
       }
-    
-    // Print Par1      
+
+    // Print Par1
     if(P1!=P_NOT)
       {
       PrintChar(' ');
@@ -290,8 +290,8 @@ void PrintEventCode(unsigned long Code)
           break;
         }
       }// P1
-  
-    // Print Par2    
+
+    // Print Par2
     if(P2!=P_NOT)
       {
       PrintChar(',');
@@ -314,14 +314,14 @@ void PrintEventCode(unsigned long Code)
         }
       }// P2
     }//   if(Type==SIGNAL_TYPE_NODO || Type==SIGNAL_TYPE_OTHERUNIT)
-    
+
   else // wat over blijft is het type UNKNOWN.
     PrintValue(Code);
-    
-  PrintChar(')'); 
+
+  PrintChar(')');
   }
 
-     
+
  /**********************************************************************************************\
  * Verzend teken(s) naar de seriele poort die een regel afsluiten.
  \*********************************************************************************************/
@@ -332,7 +332,7 @@ void PrintTerm()
   if(SERIAL_TERMINATOR_2)Serial.write(SERIAL_TERMINATOR_2);
   }
 
-  
+
  /**********************************************************************************************\
  * Print een regel uit de Eventlist.
  \*********************************************************************************************/
@@ -340,7 +340,7 @@ void PrintEventlistEntry(int entry, byte d)
   {
   unsigned long Event, Action;
 
-  Eventlist_Read(entry,&Event,&Action); // leesregel uit de Eventlist.    
+  Eventlist_Read(entry,&Event,&Action); // leesregel uit de Eventlist.
 
   // Geef de entry van de eventlist weer
   if(S.Display&DISPLAY_TAG)
@@ -366,7 +366,7 @@ void PrintEventlistEntry(int entry, byte d)
     PrintText(Text_16);
   PrintEventCode(Action);
   }
-  
+
  /**********************************************************************************************\
  * Print actuele dag, datum, tijd.
  \*********************************************************************************************/
@@ -376,21 +376,21 @@ void PrintDateTime(void)
     for(byte x=0;x<=2;x++)Serial.write(*(Text(Text_04)+(Time.Day-1)*3+x));
     PrintChar(' ');
 
-    // print year.    
+    // print year.
     Serial.print(Time.Year,DEC);
     PrintChar('-');
 
-    // print maand.    
+    // print maand.
     if(Time.Month<10)PrintChar('0');
     PrintValue(Time.Month);
     PrintChar('-');
 
-    // print datum.    
+    // print datum.
     if(Time.Date<10)PrintChar('0');
     PrintValue(Time.Date);
     PrintChar(' ');
-    
-    // print uren.    
+
+    // print uren.
     if(Time.Hour<10)PrintChar('0');
     PrintValue(Time.Hour);
     PrintChar(':');

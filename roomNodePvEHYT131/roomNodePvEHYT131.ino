@@ -13,14 +13,13 @@
 // The Studeerkamer Jeenode has the Roomboard connected to Port 2 and 3 and uses the SHT11
 // The Woonkamer Jeenode has the Roomboard connected to Port 1 (HYT131) and 4
 
-
 #include <JeeLib.h>
 #include <PortsSHT11.h>
 #include <avr/sleep.h>
 #include <util/atomic.h>
 
-#define SERIAL  0   // set to 1 to also report readings on the serial port
-#define DEBUG   0   // set to 1 to display each loop() run and PIR trigger
+#define SERIAL  1   // set to 1 to also report readings on the serial port
+#define DEBUG   1   // set to 1 to display each loop() run and PIR trigger
 
 #define HYT131_PORT  1   // defined if HYT131 is connected to a port
 #define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin

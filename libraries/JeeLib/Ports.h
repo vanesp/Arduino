@@ -62,6 +62,19 @@ protected:
     /// @return Arduino analog pin number of a Port's A pin (uint8_t).
     inline uint8_t anaPin() const
         { return 11 - 2 * portNum; }
+#elif defined(__AVR_ATmega2560__)
+	/// @return Arduino digital pin number of a Port's D pin (uint8_t).
+    inline uint8_t digiPin() const
+        { return portNum ? portNum + 3 : 20; }
+	/// @return Arduino digital pin number of a Port's A pin (uint8_t).
+    inline uint8_t digiPin2() const
+        { return portNum ? portNum + 13 : 21; }
+	/// @return Arduino digital pin number of the I pin on all Ports (uint8_t).
+    static uint8_t digiPin3()
+        { return 3; }
+    /// @return Arduino analog pin number of a Port's A pin (uint8_t).
+    inline uint8_t anaPin() const
+        { return portNum - 1; }
 #else
 	/// @return Arduino digital pin number of a Port's D pin (uint8_t).
     inline uint8_t digiPin() const
@@ -102,7 +115,7 @@ public:
     /// Applies the Arduino pulseIn() function on a Port's D pin.
     inline uint32_t pulse(uint8_t state, uint32_t timeout =1000000L) const
         { return pulseIn(digiPin(), state, timeout); }
-    
+
     // AIO pin
 
     /// Set the pin mode of a Port's A pin. The mode2() function member sets
@@ -113,7 +126,7 @@ public:
     /// Reads an analog value from a Port's A pin.
     /// @return int [0..1023]
     inline uint16_t anaRead() const
-        { return analogRead(anaPin()); }        
+        { return analogRead(anaPin()); }
 	/// Reads the value of a Port's A pin.
     /// @return High or Low.
     inline uint8_t digiRead2() const
@@ -126,7 +139,7 @@ public:
     /// @see http://arduino.cc/en/Reference/pulseIn for more details.
     inline uint32_t pulse2(uint8_t state, uint32_t timeout =1000000L) const
         { return pulseIn(digiPin2(), state, timeout); }
-        
+
     // IRQ pin (INT1, shared across all ports)
 
     /// Set the pin mode of the I pin on all Ports. The mode3() function member
@@ -146,7 +159,7 @@ public:
     /// Writes a PWM value to the I pin of all Ports.
     static void anaWrite3(uint8_t val)
         { analogWrite(digiPin3(), val); }
-    
+
     // both pins: data on DIO, clock on AIO
 
     /// Does Arduino shiftOut() with data on D and clock on A pin of the Port.
@@ -159,7 +172,7 @@ public:
 /// These objects represent remote nodes connected via wireless.
 /// Requires the RemotePort and RemoteHandler classes.
 class RemoteNode {
-public: 
+public:
     /// @struct Data
     /// %Data structure exchanged to implement RemoteNode functionality.
     typedef struct {
@@ -168,7 +181,7 @@ public:
     } Data;
 
     RemoteNode (char id, uint8_t band, uint8_t group =0);
-    
+
     void poll(uint16_t msecs);
 
     friend class RemoteHandler;
@@ -201,11 +214,11 @@ public:
     uint8_t digiRead() const;
     void digiWrite(uint8_t value) const;
     void anaWrite(uint8_t val) const;
-    
-    void mode2(uint8_t value) const;    
+
+    void mode2(uint8_t value) const;
     uint16_t anaRead() const;
     uint8_t digiRead2() const;
-    void digiWrite2(uint8_t value) const;    
+    void digiWrite2(uint8_t value) const;
 };
 
 /// Can be used to drive a software (bit-banged) I2C bus via a Port interface.
@@ -240,12 +253,12 @@ public:
 public:
     enum { KHZMAX = 1, KHZ400 = 2, KHZ100 = 9 };
 #endif
-    
+
     /// Creates an instance of class PortI2C
     /// @param num port number corresponding to physical JeeNode port number.
     /// @param rate in microseconds - time delay between bits? (not quite!)
     PortI2C (uint8_t num, uint8_t rate =KHZMAX);
-    
+
     /// Initalize I2C communication on a JeeNode port.
     /// @param addr I2C address of device with which to communicate
     /// @returns 1 if communication succeeded, 0 otherwise
@@ -266,13 +279,13 @@ public:
 class DeviceI2C {
     const PortI2C& port;
     uint8_t addr;
-    
+
 public:
     DeviceI2C(const PortI2C& p, uint8_t me) : port (p), addr (me << 1) {}
-    
+
     /// see if a device answers at an I2C address
     bool isPresent() const;
-    
+
     /// Create a start condition on the I2C bus, and set things up for sending
     /// data to this device.
     /// @returns true if acknowledged by the slave device.
@@ -295,11 +308,11 @@ public:
     /// Read a byte from the currently addressed device. Must be preceded by a
     /// proper PortI2C start() call.
     /// @param last Indicates whether this is the last byte to read. Used to
-    ///             respond to the write with a positive or negative ack. 
+    ///             respond to the write with a positive or negative ack.
     ///             Pass 1 if reading the last byte, otherwise pass 0.
     uint8_t read(uint8_t last) const
         { return port.read(last); }
-        
+
     void setAddress(uint8_t me)
         { addr = me << 1; }
 };
@@ -315,7 +328,7 @@ class MilliTimer {
     byte armed;
 public:
     MilliTimer () : armed (0) {}
-    
+
     /// poll until the timer fires
     /// @param ms Periodic repeat rate of the time, omit for a one-shot timer.
     byte poll(word ms =0);
@@ -333,7 +346,7 @@ public:
 class Sleepy {
 public:
     /// start the watchdog timer (or disable it if mode < 0)
-    /// @param mode Enable watchdog trigger after "16 << mode" milliseconds 
+    /// @param mode Enable watchdog trigger after "16 << mode" milliseconds
     ///             (mode 0..9), or disable it (mode < 0).
     /// @note If you use this function, you MUST included a definition of a WDT
     /// interrupt handler in your code. The simplest is to include this line:
@@ -342,10 +355,14 @@ public:
     ///
     /// This will get called when the watchdog fires.
     static void watchdogInterrupts (char mode);
-    
+
     /// enter low-power mode, wake up with watchdog, INT0/1, or pin-change
     static void powerDown ();
-    
+
+    /// flushes pending data in Serial and then enter low-power mode, wake up
+    /// with watchdog, INT0/1, or pin-change
+    static void flushAndPowerDown ();
+
     /// Spend some time in low-power mode, the timing is only approximate.
     /// @param msecs Number of milliseconds to sleep, in range 0..65535.
     /// @returns 1 if all went normally, or 0 if some other interrupt occurred
@@ -377,14 +394,14 @@ public:
     char poll();
     /// same as poll, but wait for event in power-down mode.
     /// Uses Sleepy::loseSomeTime() - see comments there re requiring the
-    /// watchdog timer. 
+    /// watchdog timer.
     char pollWaiting();
-    
+
     /// set a task timer, in tenths of seconds
     void timer(byte task, word tenths);
     /// cancel a task timer
     void cancel(byte task);
-    
+
     /// return true if a task timer is not running
     byte idle(byte task) { return tasks[task] == ~0U; }
 };
@@ -401,12 +418,12 @@ public:
     /// @param port Portnumber the blinkplug is connected to.
     BlinkPlug (byte port)
         : Port (port), leds (0), lastState (0), checkFlags (0) {}
-    
+
     void ledOn(byte mask);
     void ledOff(byte mask);
     /// @return One byte containing the state of both leds.
     byte ledState() const { return leds; }
-    
+
     byte state();
     byte pushed(); // deprecated, don't use in combination with buttonCheck
     byte buttonCheck();
@@ -432,7 +449,7 @@ class MemoryStream {
 public:
     MemoryStream (MemoryPlug& plug, word page =0, char dir =1)
             : dev (plug), start (page), curr (page), step (dir), pos (0) {}
-    
+
     long position(byte writing) const;
     byte get();
     void put(byte data);
@@ -448,11 +465,11 @@ class UartPlug : public Print {
 
     void regSet (byte reg, byte value);
     void regRead (byte reg);
-    
+
 public:
     UartPlug (PortI2C& port, byte addr)
         : dev (port, addr), in (0), out (0) {}
-        
+
     void begin(long);
     byte available();
     int read();
@@ -474,7 +491,7 @@ public:
 
     DimmerPlug (PortI2C& port, byte addr)
         : DeviceI2C (port, addr) {}
-    
+
     void begin ();
     byte getReg(byte reg) const;
     void setReg(byte reg, byte value) const;
@@ -509,9 +526,9 @@ public:
         write(0); // power down
         stop();
     }
-    
+
     void setGain(byte high);
-    
+
     const word* getData();
 
     word calcLux(byte iGain =0, byte tInt =2) const;
@@ -522,7 +539,7 @@ class HYT131 : public DeviceI2C {
 public:
     // Constructor for the HYT131 sensor.
     HYT131 (PortI2C& port) : DeviceI2C (port, 0x28) {}
-    
+
     // Execute a reading; results are in tenths of degrees and percent, respectively
     // @param temp in which to store the temperature (int, tenths of degrees C)
     // @param humi in which to store the humidity (int, tenths of percent)
@@ -558,7 +575,7 @@ class InputPlug : public Port {
     uint8_t slow;
 public:
     InputPlug (uint8_t num, uint8_t fix =0) : Port (num), slow (fix) {}
-    
+
     void select(uint8_t channel);
 };
 
@@ -570,13 +587,13 @@ class InfraredPlug : public Port {
 public:
     /// Initialize with default values for NEC protocol
     InfraredPlug (uint8_t num);
-    
+
     /// Set slot size (us*4) and end-of-data gap (us*256)
     void configure(uint8_t slot4, uint8_t gap256 =80);
-    
+
     /// Call this continuously or at least right after a pin change
     void poll();
-    
+
     /// Returns number of nibbles read, or 0 if not yet ready
     uint8_t done();
 
@@ -584,10 +601,10 @@ public:
     /// Try to decode a received packet, return type of packet
     /// if recognized, the receive buffer will be overwritten with the results
     uint8_t decoder(uint8_t nibbles);
-    
+
     /// Access to the receive buffer
     const uint8_t* buffer() { return buf; }
-    
+
     /// Send out a bit pattern, cycle time is the "slot4" config value
     void send(const uint8_t* data, uint16_t bits);
 };
@@ -608,7 +625,7 @@ public:
     HeadingBoard (int num)
         : PortI2C (num), eeprom (*this, 0x50), adc (*this, 0x77),
           compass (*this, 0x30), aux (5-num), setReset (0x02) {}
-    
+
     void begin();
     void pressure(int& temp, int& pres) const;
     void heading(int& xaxis, int& yaxis);
@@ -629,16 +646,16 @@ class ProximityPlug : public DeviceI2C {
 public:
     enum {
         FIFO, FAULT, TPSTATUS, TPCONFIG,
-        STR1, STR2, STR3, STR4, STR5, STR6, STR7, STR8, 
+        STR1, STR2, STR3, STR4, STR5, STR6, STR7, STR8,
         ECEMR, MNTPR, MTPR, TASPR, SCR, LPCR, SKTR,
         CONFIG, SINFO,
     };
 
     ProximityPlug (PortI2C& port, byte num =0)
         : DeviceI2C (port, 0x5C + num) {}
-    
+
     void begin();
-    
+
     void setReg(byte reg, byte value) const;
     byte getReg(byte reg) const;
 };
@@ -649,7 +666,7 @@ class AnalogPlug : public DeviceI2C {
 public:
   AnalogPlug (const PortI2C& port, byte addr =0x69)
     : DeviceI2C (port, addr), config (0x1C) {}
-  
+
   /// Default mode is channel 1, continuous, 18-bit, gain x1
   void begin (byte mode =0x1C);
   /// Select channel (1..4), must wait to read it out (up to 270 ms for 18-bit)
@@ -682,19 +699,19 @@ public:
     };
 
     ColorPlug (PortI2C& port, byte addr) : DeviceI2C (port, addr) {}
-    
+
     void begin() {
         send();
         write(0x80 | CONTROL);
         write(3); // power up
         stop();
     }
-    
+
     void setGain(byte gain, byte prescaler);
-    
+
     // returns four 16-bit values: red, green, blue, and clear intensities
     const word* getData();
-    
+
     const word* chromaCCT();
 };
 
@@ -708,17 +725,17 @@ public:
         byte bytes;     // number of bytes required as input
         void (*fun)();  // code to call for this command
     } Commands;
-    
+
     /// Set up with a buffer of specified size
     InputParser (byte size, Commands*, Stream& =Serial);
     InputParser (byte* buf, byte size, Commands*, Stream& =Serial);
-    
+
     /// Number of data bytes
     byte count() { return fill; }
-    
+
     /// Call this frequently to check for incoming data
     void poll();
-    
+
     InputParser& operator >> (char& v)      { return get(&v, 1); }
     InputParser& operator >> (byte& v)      { return get(&v, 1); }
     InputParser& operator >> (int& v)       { return get(&v, 2); }
@@ -730,7 +747,7 @@ public:
 private:
     InputParser& get(void*, byte);
     void reset();
-    
+
     byte *buffer, limit, fill, top, next;
     byte instring, hexmode, hasvalue;
     uint32_t value;

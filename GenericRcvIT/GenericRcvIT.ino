@@ -6,15 +6,18 @@
 
 // LaCrosse IT+ Sensor readings added with thanks to
 // Gérard Chevalier, Nov 2011
-// IT+ decoding was possible thank to
+// IT+ decoding was possible thanks to
 //   - The great job done by fred, see here: http://fredboboss.free.fr/tx29/tx29_1.php?lang=en
-//   - And stuff found here: http://forum.jeelabs.net/node/110
+//   - And stuff found here: http://forum.jeelabs.net/node/110.html
 
 // 2015-09-027
 // New version... assign high end, random numbers to the internal and (optional) external temperature sensors
 // to prevent conflicts with IT+ sensors added over which we have no control in channel numbers
 // Ensure these numbers correspond correctly in the database
 // We've used 243 instead of 2, and 247 instead of 3
+
+// 2016-03-27
+// Some modifications on temperature handling of LaCrosse sensors
 
 #include <JeeLib.h>
 #include <Arduino.h>
@@ -50,17 +53,16 @@ DeviceAddress Thermometer[NRSENSORS];   // array to hold device addresses
 
 // IT+ Decoding debug flags
 // #define ITPLUS_DEBUG_FRAME
-#define ITPLUS_DEBUG
+// #define ITPLUS_DEBUG
 // #define DEBUG_CRC
-#define RF12_DEBUG
+// #define RF12_DEBUG
 
 #define SENSORS_RX_TIMEOUT 5        // in minutes?
-#define ITPLUS_MAX_SENSORS  10
+#define ITPLUS_MAX_SENSORS  5
 #define ITPLUS_MAX_DISCOVER  ITPLUS_MAX_SENSORS
 #define ITPLUS_DISCOVERY_PERIOD 255
 
 #define ITPLUS_ID_MASK	0b00111111
-#define REPORT_EVERY   1   // report every N measurement cycles, a cycle takes a minute
 
 // LaCrosse Radio Sensor structure (for IT+)
 typedef struct {
@@ -148,7 +150,7 @@ void ProcessITPlusFrame() {
   // Here it is possible that the frame just received is an IT+ one (flag ITPlusFrame set), but not sure.
   // So, check CRC, and decode if OK.
 #ifdef ITPLUS_DEBUG_FRAME
-  Serial.Println("GotIT+");
+  Serial.println("GotIT+");
   for(uint8_t i = 0; i < 5; i++) {
       printHex(rf12_buf[i]);
       Serial.print(' ');
@@ -252,11 +254,9 @@ byte CheckITPlusRegistration(byte id, byte Temp, byte DeciTemp, byte Humid) {
   return FreeIndex;
 }
 
-
-
 void setup () {
     Serial.begin(57600);
-    Serial.println("\n[GNR IT+ 02]");
+    Serial.println("\n[GNR IT+ 03]");
     // Set-up RF12 library
     myNodeID = rf12_initialize(1, RF12_868MHZ, 0xd4); // 0xd4 needed for IT+
     // Overide settings for RFM01/IT+ compliance
@@ -265,7 +265,6 @@ void setup () {
     // rf12_initialize(1, RF12_868MHZ, 5); // 868 Mhz, net group 5, node 1
     // keep as set up
     // myNodeID = rf12_config();
-
 
     for (uint8_t i = 0; i < NSIGS; ++i) {
         pinMode(SENSOR1 + i, INPUT);
@@ -293,14 +292,15 @@ void setup () {
     sensors.requestTemperatures();      // Throw away the first temperatures
 
     // Set-up the LaCrosse IT+ receiving sensor structure
-    for (byte i = 0; i < ITPLUS_MAX_SENSORS; i++)
+    for (byte i = 0; i < ITPLUS_MAX_SENSORS; i++) {
         ITPlusChannels[i].LastReceiveTimer = 0;
+        ITPlusChannels[i].SensorID = 0xff;
+    }
 
     tempLoop = TEMP - 1;        // ensure first report is soon
     startTime = millis();
     Serial.flush();
 }
-
 
 // should be called at least each millisec to accurately track sensor changes
 void pollSensors() {
@@ -333,14 +333,12 @@ void pollSensors() {
     }
 }
 
-
-
 void loop () {
     int i;
     int Temp;
     byte Channel;
     
-    pollSensors();
+    // pollSensors();
 
     if (rf12_recvDone()) {
            // If a "Receive Done" condition is signaled, we can safely use the RF12 library buffer up to the next call to
@@ -370,7 +368,7 @@ void loop () {
                 }
            }        
     }
-    
+   
     if (sendTimer.poll(TIMER)) {
         txrequest = 1;
         tempLoop++;
@@ -398,20 +396,21 @@ void loop () {
         }
         sendTimer.poll(TIMER); // reset
     }
-
    
     // check if it is time to do temperature again (each loop is 10 secs)
     if (tempLoop >= TEMP) {
        tempLoop = 0;
-       sensors.requestTemperatures();       // Send the command to get temperatures
-       for (j = 0; j < ActualSensors; j++) {
-           Temp = sensors.getTempC(Thermometer[j]) * 100;
-           Serial.print("TMP ");
-           Serial.print(idSensor[j]);  
-           Serial.print (' ');
-           Serial.println (Temp);        
-           Serial.flush();
-       }
+       if (ActualSensors > 0) {                 // only if we have sensors
+           sensors.requestTemperatures();       // Send the command to get temperatures
+           for (j = 0; j < ActualSensors; j++) {
+               Temp = sensors.getTempC(Thermometer[j]) * 100;
+               Serial.print("TMP ");
+               Serial.print(idSensor[j]);  
+               Serial.print (' ');
+               Serial.println (Temp);        
+               Serial.flush();
+           } // for
+       } // if actualSensors
        
        // and send the LaCrosse data too...
        // DataStream 1 to ITPLUS_MAX_SENSORS are IT+ Sensors
@@ -437,7 +436,6 @@ void loop () {
                } // only if valid data
            } // only if registered
        } // for loop
-       
-    }
+    } // if temploop
 
 }

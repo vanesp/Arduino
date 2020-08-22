@@ -37,7 +37,11 @@ uint8_t rf69_initialize (uint8_t id, uint8_t band, uint8_t group, uint16_t off) 
     RF69::node = id & RF12_HDR_MASK;
     delay(20); // needed to make RFM69 work properly on power-up
     if (RF69::node != 0)
+#if defined(__AVR_ATmega1284P__) //Moteino mega
+        attachInterrupt(2, RF69::interrupt_compat, RISING);
+#else
         attachInterrupt(0, RF69::interrupt_compat, RISING);
+#endif
     else
         detachInterrupt(0);
     RF69::configure_compat();
@@ -53,14 +57,14 @@ uint8_t rf69_configSilent () {
     }
     if (crc || eeprom_read_byte(RF12_EEPROM_ADDR + 2) != RF12_EEPROM_VERSION)
         return 0;
-        
-    uint8_t nodeId = 0, group = 0;   
-    uint16_t frequency = 0;  
-     
+
+    uint8_t nodeId = 0, group = 0;
+    uint16_t frequency = 0;
+
     nodeId = eeprom_read_byte(RF12_EEPROM_ADDR + 0);
     group  = eeprom_read_byte(RF12_EEPROM_ADDR + 1);
     frequency = eeprom_read_word((uint16_t*) (RF12_EEPROM_ADDR + 4));
-    
+
     rf69_initialize(nodeId, nodeId >> 6, group, frequency);
     return nodeId & RF12_HDR_MASK;
 }
@@ -110,8 +114,9 @@ void rf69_sendWait (uint8_t mode) {
         }
 }
 
-// void rf69_onOff (uint8_t value) {
-// }
+void rf69_onOff (uint8_t value) {
+    // TODO: not yet implemented
+}
 
 void rf69_sleep (char n) {
     RF69::sleep(n == RF12_SLEEP);
@@ -166,8 +171,12 @@ char rf69_easySend (const void* data, uint8_t size) {
     return 1;
 }
 
-// void rf69_encrypt (const uint8_t*) {
-// }
+void rf69_encrypt (const uint8_t*) {
+    // TODO: not yet implemented
+}
 
-// uint16_t rf69_control (uint16_t cmd) {
-// }
+uint16_t rf69_control (uint16_t cmd) {
+    // the RF69's API is different: use top 8 bits as reg + w/r flag, and
+    // bottom 8 bits as the value to store, result is only 8 bits, not 16
+    return RF69::control(cmd >> 8, cmd);
+}

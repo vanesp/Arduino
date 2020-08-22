@@ -5,6 +5,7 @@
 #define REG_FIFO            0x00
 #define REG_OPMODE          0x01
 #define REG_FRFMSB          0x07
+#define REG_AFCFEI          0x1E
 #define REG_RSSIVALUE       0x24
 #define REG_DIOMAPPING1     0x25
 #define REG_IRQFLAGS1       0x27
@@ -12,6 +13,7 @@
 #define REG_SYNCCONFIG      0x2E
 #define REG_SYNCVALUE1      0x2F
 #define REG_SYNCVALUE2      0x30
+#define REG_SYNCVALUE3      0x31
 #define REG_NODEADRS        0x39
 #define REG_PACKETCONFIG2   0x3D
 #define REG_AESKEY1         0x3E
@@ -29,6 +31,12 @@
 #define IRQ2_FIFOOVERRUN    0x10
 #define IRQ2_PACKETSENT     0x08
 #define IRQ2_PAYLOADREADY   0x04
+
+#define DMAP1_PACKETSENT    0x00
+#define DMAP1_PAYLOADREADY  0x40
+#define DMAP1_SYNCADDRESS   0x80
+
+#define AFC_CLEAR           0x02
 
 #define RF_MAX   72
 
@@ -61,9 +69,10 @@ static ROM_UINT8 configRegs_compat [] ROM_DATA = {
   0x1E, 0x2C, // FeiStart, AfcAutoclearOn, AfcAutoOn
   0x25, 0x80, // DioMapping1 = SyncAddress (Rx)
   // 0x29, 0xDC, // RssiThresh ...
-  0x2E, 0x88, // SyncConfig = sync on, sync size = 2
-  0x2F, 0x2D, // SyncValue1 = 0x2D
-  // 0x30, 0x05, // SyncValue2 = 0x05
+  0x2E, 0x90, // SyncConfig = sync on, sync size = 3
+  0x2F, 0xAA, // SyncValue1 = 0xAA
+  0x30, 0x2D, // SyncValue2 = 0x2D
+  // 0x31, 0x05, // SyncValue3 = 0x05
   0x37, 0x00, // PacketConfig1 = fixed, no crc, filt off
   0x38, 0x00, // PayloadLength = 0, unlimited
   0x3C, 0x8F, // FifoTresh, not empty, level 15
@@ -117,7 +126,7 @@ void RF69::setFrequency (uint32_t freq) {
     // use multiples of 64 to avoid multi-precision arithmetic, i.e. 3906.25 Hz
     // due to this, the lower 6 bits of the calculated factor will always be 0
     // this is still 4 ppm, i.e. well below the radio's 32 MHz crystal accuracy
-    // 868.0 MHz = 0xD90000, 868.3 MHz = 0xD91300, 915.0 MHz = 0xE4C000  
+    // 868.0 MHz = 0xD90000, 868.3 MHz = 0xD91300, 915.0 MHz = 0xE4C000
     frf = ((freq << 2) / (32000000L >> 11)) << 6;
 }
 
@@ -144,10 +153,10 @@ void RF69::sleep (bool off) {
 #include <RF12.h>
 
 void RF69::configure_compat () {
-    initRadio(configRegs_compat);    
+    initRadio(configRegs_compat);
     // FIXME doesn't seem to work, nothing comes in but noise for group 0
     // writeReg(REG_SYNCCONFIG, group ? 0x88 : 0x80);
-    writeReg(REG_SYNCVALUE2, group);
+    writeReg(REG_SYNCVALUE3, group);
 
     writeReg(REG_FRFMSB, frf >> 16);
     writeReg(REG_FRFMSB+1, frf >> 8);
@@ -161,38 +170,42 @@ uint8_t* recvBuf;
 uint16_t RF69::recvDone_compat (uint8_t* buf) {
     switch (rxstate) {
     case TXIDLE:
-        rxfill = rf12_len = 0;
+        //rxfill = rf12_len = 0;
+        rxfill = rf12_buf[2] = 0;
         crc = _crc16_update(~0, group);
         recvBuf = buf;
         rxstate = TXRECV;
         flushFifo();
+        writeReg(REG_DIOMAPPING1, DMAP1_SYNCADDRESS);    // Interrupt trigger
         setMode(MODE_RECEIVER);
+        writeReg(REG_AFCFEI, AFC_CLEAR);
         break;
     case TXRECV:
         if (rxfill >= rf12_len + 5 || rxfill >= RF_MAX) {
             rxstate = TXIDLE;
             setMode(MODE_STANDBY);
-            if (rf12_len > RF12_MAXDATA)
-                crc = 1; // force bad crc for invalid packet
+            if (crc != 0 | rf12_len > RF12_MAXDATA)
+                return 1; // force bad crc for invalid packet
             if (!(rf12_hdr & RF12_HDR_DST) || node == 31 ||
                     (rf12_hdr & RF12_HDR_MASK) == node)
-                return crc;
+                return 0; // it's for us, good packet received
         }
+        break;
     }
-    return ~0;
+    return ~0; // keep going, not done yet
 }
 
 void RF69::sendStart_compat (uint8_t hdr, const void* ptr, uint8_t len) {
-    rf12_len = len;
+    rf12_buf[2] = len;
     for (int i = 0; i < len; ++i)
         rf12_data[i] = ((const uint8_t*) ptr)[i];
-    rf12_hdr = hdr & RF12_HDR_DST ? hdr : (hdr & ~RF12_HDR_MASK) + node;  
-    rf12_crc = _crc16_update(~0, group);
+    rf12_hdr = hdr & RF12_HDR_DST ? hdr : (hdr & ~RF12_HDR_MASK) + node;
+    crc = _crc16_update(~0, group);
     rxstate = - (2 + rf12_len); // preamble and SYN1/SYN2 are sent by hardware
     flushFifo();
     setMode(MODE_TRANSMITTER);
     writeReg(REG_DIOMAPPING1, 0x00); // PacketSent
-    
+
     // use busy polling until the last byte fits into the buffer
     // this makes sure it all happens on time, and that sendWait can sleep
     while (rxstate < TXDONE)
@@ -214,6 +227,8 @@ void RF69::sendStart_compat (uint8_t hdr, const void* ptr, uint8_t len) {
 
 void RF69::interrupt_compat () {
     if (rxstate == TXRECV) {
+        // The following line attempts to stop further interrupts
+        writeReg(REG_DIOMAPPING1, 0x40);  // Interrupt on PayloadReady
         rssi = readReg(REG_RSSIVALUE);
         IRQ_ENABLE; // allow nested interrupts from here on
         for (;;) { // busy loop, to get each data byte as soon as it comes in
@@ -222,7 +237,9 @@ void RF69::interrupt_compat () {
                     recvBuf[rxfill++] = group;
                 uint8_t in = readReg(REG_FIFO);
                 recvBuf[rxfill++] = in;
-                crc = _crc16_update(crc, in);              
+                crc = _crc16_update(crc, in);
+                if (rf12_len > RF12_MAXDATA)
+                    rxfill = RF_MAX; // bail out now, the length is invalid
                 if (rxfill >= rf12_len + 5 || rxfill >= RF_MAX)
                     break;
             }

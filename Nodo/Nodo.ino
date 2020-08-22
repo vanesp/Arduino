@@ -58,7 +58,7 @@
 // compileren.Geef het volledige pad op.
 // Let op: Bij Linux/Unix zijn de namen case-sensitive.
 
-#define SKETCH_PATH  /Users/vanesp/Arduino/Nodo
+#define SKETCH_PATH  /Users/vanesp/Documents/Arduino/Nodo
 
 
 // ################################### Stap-2 #####################################################

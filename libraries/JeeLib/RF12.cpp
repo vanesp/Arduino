@@ -13,9 +13,28 @@
 #include <WProgram.h> // Arduino 0022
 #endif
 
+#if RF12_COMPAT
+#define rf12_rawlen     rf12_buf[1]
+#define rf12_dest       (rf12_buf[2] & RF12_HDR_MASK)
+#define rf12_orig       (rf12_buf[3] & RF12_HDR_MASK)
+#define slack           6
+#define crc_initVal     0x1D0F
+#define crc_endVal      0x1D0F
+#define crc_update      _crc_xmodem_update
+#else
+#define rf12_rawlen     rf12_len
+// #define rf12_dest    (rf12_hdr & RF12_HDR_DST ? rf12_hdr & RF12_HDR_MASK : 0)
+// #define rf12_orig    (rf12_hdr & RF12_HDR_DST ? 0 : rf12_hdr & RF12_HDR_MASK)
+#define slack           5
+#define crc_initVal     ~0
+#define crc_endVal      0
+#define crc_update      _crc16_update
+#endif
+
 //Set TX29_IT_PLUS to 1 compile La Crosse extensions in , else set TX29_IT_PLUS to 0
 //
 #define TX29_IT_PLUS 	1
+
 
 // #define OPTIMIZE_SPI 1  // uncomment this to write to the RFM12B @ 8 Mhz
 
@@ -74,20 +93,21 @@
 
 #elif defined(__AVR_ATmega32U4__) //Arduino Leonardo
 
-#define RFM_IRQ     3       // PD0, INT0, Digital3
+#define RFM_IRQ     0       // PD0, INT0, Digital3
 #define SS_DDR      DDRB
 #define SS_PORT     PORTB
-#define SS_BIT      6       // Dig10, PB6
+#define SS_BIT      6	    // Dig10, PB6
 
-#define SPI_SS      17    // PB0, pin 8, Digital17
-#define SPI_MISO    14    // PB3, pin 11, Digital14
-#define SPI_MOSI    16    // PB2, pin 10, Digital16
-#define SPI_SCK     15    // PB1, pin 9, Digital15
+#define SPI_SS      10    // PB6, pin 30, Digital10
+#define SPI_MISO    3     // PB3, pin 11, Digital14
+#define SPI_MOSI    2     // PB2, pin 10, Digital16
+#define SPI_SCK     1     // PB1, pin 9, Digital15
 
 #else
 
 // ATmega168, ATmega328, etc.
-#define RFM_IRQ     2
+#define RFM_IRQ     2     // 2=JeeNode, 18=JeeNode pin change
+//#define RFM_IRQ       1     // PCINT1=JeeNode Block pin change
 #define SS_DDR      DDRB
 #define SS_PORT     PORTB
 #define SS_BIT      2     // for PORTB: 2 = d.10, 1 = d.9, 0 = d.8
@@ -116,7 +136,7 @@
 
 // bits in the node id configuration byte
 #define NODE_BAND       0xC0        // frequency band
-#define NODE_ID         0x1F        // id of this node, as A..Z or 1..31
+#define NODE_ID         RF12_HDR_MASK // id of this node, as A..Z or 1..31
 
 // transceiver states, these determine what to do with each interrupt
 enum {
@@ -154,6 +174,16 @@ void (*crypter)(uint8_t);           // does en-/decryption (null if disabled)
 //Bingo
 #if TX29_IT_PLUS == 1
 boolean ITPlusFrame;
+#endif
+
+#if RF12_COMPAT
+const uint8_t whitening[] = {
+  // see http://www.semtech.com/images/datasheet/AN1200.18_STD.pdf
+  255,135,184,89,183,161,204,36,87,94,75,156,14,233,234,80,42,190,180,27,182,
+  176,93,241,230,154,227,69,253,44,83,24,12,202,201,251,73,55,229,168,81,59,
+  47,97,170,114,24,132,2,35,35,171,99,137,81,179,231,139,114,144,76,232,251,
+  193,255,15,112,179,111,67,
+};
 #endif
 
 // function to set chip select pin from within sketch
@@ -263,11 +293,11 @@ uint16_t rf12_control(uint16_t cmd) {
 #ifdef EIMSK
 #if PINCHG_IRQ
     #if RFM_IRQ < 8
-        bitClear(PCICR, PCIE2);
-    #elif RFM_IRQ < 14
         bitClear(PCICR, PCIE0);
-    #else
+    #elif RFM_IRQ < 16
         bitClear(PCICR, PCIE1);
+    #else
+        bitClear(PCICR, PCIE2);
     #endif
 #else
     bitClear(EIMSK, INT0);
@@ -275,11 +305,11 @@ uint16_t rf12_control(uint16_t cmd) {
    uint16_t r = rf12_xferSlow(cmd);
 #if PINCHG_IRQ
     #if RFM_IRQ < 8
-        bitSet(PCICR, PCIE2);
-    #elif RFM_IRQ < 14
         bitSet(PCICR, PCIE0);
-    #else
+    #elif RFM_IRQ < 16
         bitSet(PCICR, PCIE1);
+    #else
+        bitSet(PCICR, PCIE2);
     #endif
 #else
     bitSet(EIMSK, INT0);
@@ -326,6 +356,9 @@ static void rf12_interrupt () {
 #endif
             rf12_buf[rxfill++] = group;
 
+#if RF12_COMPAT
+        in ^= whitening[rxfill-1];
+#endif
         rf12_buf[rxfill++] = in;
 //Bingo
 #if TX29_IT_PLUS == 1
@@ -337,9 +370,9 @@ static void rf12_interrupt () {
 /* GCR */
         } else {
 #endif
-        rf12_crc = _crc16_update(rf12_crc, in);
+        rf12_crc = crc_update(rf12_crc, in);
 
-        if (rxfill >= rf12_len + 5 || rxfill >= RF_MAX)
+        if (rxfill >= rf12_len + 5 + RF12_COMPAT || rxfill >= RF_MAX)
             rf12_xfer(RF_IDLE_MODE);
 //Bingo
 #if TX29_IT_PLUS == 1
@@ -349,18 +382,34 @@ static void rf12_interrupt () {
         uint8_t out;
 
         if (rxstate < 0) {
-            uint8_t pos = 3 + rf12_len + rxstate++;
+            uint8_t pos = 3 + RF12_COMPAT + rf12_len + rxstate++;
             out = rf12_buf[pos];
-            rf12_crc = _crc16_update(rf12_crc, out);
-        } else
-            switch (rxstate++) {
+            rf12_crc = crc_update(rf12_crc, out);
+#if RF12_COMPAT
+            out ^= whitening[pos-1];
+#endif
+        } else {
+            switch (rxstate) {
                 case TXSYN1: out = 0x2D; break;
-                case TXSYN2: out = group; rxstate = - (2 + rf12_len); break;
+                case TXSYN2: out = group;
+                             rxstate = - (3 + RF12_COMPAT + rf12_len);
+                             break;
+#if RF12_COMPAT
+                case TXCRC1: out = ~rf12_crc >> 8; break;
+                case TXCRC2: out = ~rf12_crc; break;
+#else
                 case TXCRC1: out = rf12_crc; break;
                 case TXCRC2: out = rf12_crc >> 8; break;
+#endif
                 case TXDONE: rf12_xfer(RF_IDLE_MODE); // fall through
                 default:     out = 0xAA;
             }
+#if RF12_COMPAT
+            if (rxstate < TXDONE) // this applies only to TXCRC1 and TXCRC2
+                out ^= whitening[3 + rf12_len + rxstate];
+#endif
+            ++rxstate;
+        }
 
         rf12_xfer(RF_TXREG_WRITE + out);
     }
@@ -368,18 +417,18 @@ static void rf12_interrupt () {
 
 #if PINCHG_IRQ
     #if RFM_IRQ < 8
-        ISR(PCINT2_vect) {
-            while (!bitRead(PIND, RFM_IRQ))
+        ISR(PCINT0_vect) {
+            while (!bitRead(PINB, RFM_IRQ))
                 rf12_interrupt();
         }
-    #elif RFM_IRQ < 14
-        ISR(PCINT0_vect) {
-            while (!bitRead(PINB, RFM_IRQ - 8))
+    #elif RFM_IRQ < 16
+        ISR(PCINT1_vect) {
+            while (!bitRead(PINC, RFM_IRQ - 8))
                 rf12_interrupt();
         }
     #else
-        ISR(PCINT1_vect) {
-            while (!bitRead(PINC, RFM_IRQ - 14))
+        ISR(PCINT2_vect) {
+            while (!bitRead(PIND, RFM_IRQ - 16))
                 rf12_interrupt();
         }
     #endif
@@ -387,15 +436,15 @@ static void rf12_interrupt () {
 
 static void rf12_recvStart () {
     if (rf12_fixed_pkt_len) {
-        rf12_len = rf12_fixed_pkt_len;
+        rf12_rawlen = rf12_fixed_pkt_len;
         rf12_grp = rf12_hdr = 0;
         rxfill = 3;
     } else
-        rxfill = rf12_len = 0;
-    rf12_crc = ~0;
-#if RF12_VERSION >= 2
+        rxfill = rf12_rawlen = 0;
+    rf12_crc = crc_initVal;
+#if RF12_VERSION >= 2 && !RF12_COMPAT
     if (group != 0)
-        rf12_crc = _crc16_update(~0, group);
+        rf12_crc = crc_update(rf12_crc, group);
 #endif
     rxstate = TXRECV;
 
@@ -444,12 +493,20 @@ uint8_t rf12_recvDone () {
 /* GCR */
     } else {	// RFM12/Jeenode normal processing
 #endif
-    if (rxstate == TXRECV && (rxfill >= rf12_len + 5 || rxfill >= RF_MAX)) {
+    if (rxstate == TXRECV &&
+            (rxfill >= rf12_len + 5 + RF12_COMPAT || rxfill >= RF_MAX)) {
         rxstate = TXIDLE;
+        rf12_crc ^= crc_endVal;
         if (rf12_len > RF12_MAXDATA)
             rf12_crc = 1; // force bad crc if packet length is invalid
+#if RF12_COMPAT
+        if (rf12_dest == 0 || (nodeid & NODE_ID) == 63 ||
+                (rf12_dest == (nodeid & NODE_ID)))
+#else
         if (!(rf12_hdr & RF12_HDR_DST) || (nodeid & NODE_ID) == 31 ||
-                (rf12_hdr & RF12_HDR_MASK) == (nodeid & NODE_ID)) {
+                (rf12_hdr & RF12_HDR_MASK) == (nodeid & NODE_ID))
+#endif
+        {
             if (rf12_crc == 0 && crypter != 0)
                 crypter(0);
             else
@@ -493,14 +550,24 @@ uint8_t rf12_canSend () {
 }
 
 void rf12_sendStart (uint8_t hdr) {
+#if RF12_COMPAT
+    // top 2 bits are the parity bits of the net group
+    uint8_t parity = group ^ (group << 4);
+    parity = (parity ^ (parity << 2)) & 0xC0;
+    // the lower 6 bits are the destination, or zer of broadcasting
+    rf12_dst = parity | (hdr & RF12_HDR_DST ? hdr & RF12_HDR_MASK : 0);
+    // the header byte has the two flag bits and the origin address
+    rf12_hdr = (hdr & ~RF12_HDR_MASK) + (nodeid & NODE_ID);
+#else
     rf12_hdr = hdr & RF12_HDR_DST ? hdr :
                 (hdr & ~RF12_HDR_MASK) + (nodeid & NODE_ID);
+#endif
     if (crypter != 0)
         crypter(1);
 
-    rf12_crc = ~0;
-#if RF12_VERSION >= 2
-    rf12_crc = _crc16_update(rf12_crc, group);
+    rf12_crc = crc_initVal;
+#if RF12_VERSION >= 2 && !RF12_COMPAT
+    rf12_crc = crc_update(rf12_crc, group);
 #endif
     rxstate = TXPRE1;
     rf12_xfer(RF_XMITTER_ON); // bytes will be fed via interrupts
@@ -535,7 +602,10 @@ void rf12_sendStart (uint8_t hdr) {
 /// @param ptr Pointer to the data to send as packet.
 /// @param len Number of data bytes to send. Must be in the range 0 .. 65.
 void rf12_sendStart (uint8_t hdr, const void* ptr, uint8_t len) {
-    rf12_len = len;
+    rf12_rawlen = len;
+#if RF12_COMPAT
+    rf12_rawlen += 2; // length as sent includes rf12_dst and rf12_hdr
+#endif
     memcpy((void*) rf12_data, ptr, len);
     rf12_sendStart(hdr);
 }
@@ -649,28 +719,28 @@ uint8_t rf12_initialize (uint8_t id, uint8_t band, uint8_t g, uint16_t f) {
 #if PINCHG_IRQ
     #if RFM_IRQ < 8
         if ((nodeid & NODE_ID) != 0) {
-            bitClear(DDRD, RFM_IRQ);      // input
-            bitSet(PORTD, RFM_IRQ);       // pull-up
-            bitSet(PCMSK2, RFM_IRQ);      // pin-change
-            bitSet(PCICR, PCIE2);         // enable
-        } else
-            bitClear(PCMSK2, RFM_IRQ);
-    #elif RFM_IRQ < 14
-        if ((nodeid & NODE_ID) != 0) {
-            bitClear(DDRB, RFM_IRQ - 8);  // input
-            bitSet(PORTB, RFM_IRQ - 8);   // pull-up
-            bitSet(PCMSK0, RFM_IRQ - 8);  // pin-change
+            bitClear(DDRB, RFM_IRQ);      // input
+            bitSet(PORTB, RFM_IRQ);       // pull-up
+            bitSet(PCMSK0, RFM_IRQ);      // pin-change
             bitSet(PCICR, PCIE0);         // enable
         } else
-            bitClear(PCMSK0, RFM_IRQ - 8);
-    #else
+            bitClear(PCMSK0, RFM_IRQ);
+    #elif RFM_IRQ < 15
         if ((nodeid & NODE_ID) != 0) {
-            bitClear(DDRC, RFM_IRQ - 14); // input
-            bitSet(PORTC, RFM_IRQ - 14);  // pull-up
-            bitSet(PCMSK1, RFM_IRQ - 14); // pin-change
+            bitClear(DDRC, RFM_IRQ - 8);  // input
+            bitSet(PORTC, RFM_IRQ - 8);   // pull-up
+            bitSet(PCMSK1, RFM_IRQ - 8);  // pin-change
             bitSet(PCICR, PCIE1);         // enable
         } else
-            bitClear(PCMSK1, RFM_IRQ - 14);
+            bitClear(PCMSK1, RFM_IRQ - 8);
+    #else
+        if ((nodeid & NODE_ID) != 0) {
+            bitClear(DDRD, RFM_IRQ - 16); // input
+            bitSet(PORTD, RFM_IRQ - 16);  // pull-up
+            bitSet(PCMSK2, RFM_IRQ - 16); // pin-change
+            bitSet(PCICR, PCIE2);         // enable
+        } else
+            bitClear(PCMSK2, RFM_IRQ - 16);
     #endif
 #else
     if ((nodeid & NODE_ID) != 0)
@@ -692,8 +762,6 @@ void rf12_initialize_overide_ITP () {
 }
 /* GCR */
 #endif
-
-
 
 
 /// @details
@@ -727,7 +795,7 @@ uint8_t rf12_configSilent () {
     uint16_t crc = ~0;
     for (uint8_t i = 0; i < RF12_EEPROM_SIZE; ++i) {
         byte e = eeprom_read_byte(RF12_EEPROM_ADDR + i);
-        crc = _crc16_update(crc, e);
+        crc = crc_update(crc, e);
     }
     if (crc || eeprom_read_byte(RF12_EEPROM_ADDR + 2) != RF12_EEPROM_VERSION)
         return 0;
@@ -971,10 +1039,10 @@ static void cryptFun (uint8_t send) {
         // pad with 1..4-byte sequence number
         *(uint32_t*)(rf12_data + rf12_len) = ++seqNum;
         uint8_t pad = 3 - (rf12_len & 3);
-        rf12_len += pad;
+        rf12_rawlen += pad;
         rf12_data[rf12_len] &= 0x3F;
         rf12_data[rf12_len] |= pad << 6;
-        ++rf12_len;
+        ++rf12_rawlen;
         // actual encoding
         char n = rf12_len / 4;
         if (n > 1) {
@@ -1005,10 +1073,10 @@ static void cryptFun (uint8_t send) {
         }
         // strip sequence number from the end again
         if (n > 0) {
-            uint8_t pad = rf12_data[--rf12_len] >> 6;
+            uint8_t pad = rf12_data[--rf12_rawlen] >> 6;
             rf12_seq = rf12_data[rf12_len] & 0x3F;
             while (pad-- > 0)
-                rf12_seq = (rf12_seq << 8) | rf12_data[--rf12_len];
+                rf12_seq = (rf12_seq << 8) | rf12_data[--rf12_rawlen];
         }
     }
 }
